@@ -1,6 +1,7 @@
 {
   "domain": "serial_gateway",
   "name": "Serial Gateway",
+  "version": "1.0.0",
   "codeowners": [
     "@liujun1223"
   ],
