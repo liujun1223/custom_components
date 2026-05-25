@@ -1,16 +1,16 @@
-"""Config flow for the Serial Gateway integration."""
+"""Config flow for the Egreat Player integration."""
 
 import logging
-from typing import Any
-
 import voluptuous as vol
+import serial
+import serial.tools.list_ports
 
+from typing import Any
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
-
-from .const import DOMAIN
+from .const import DOMAIN, CONF_PORT, CONF_BAUDRATE
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -67,14 +67,19 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
 
 class ConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Serial Gateway."""
+    """Handle a config flow for Egreat player."""
+    # 初始化亿格瑞播放器配置流程
 
     VERSION = 1
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle the initial step."""
+        # 处理初始的步骤
+        # 串口为/dev/ttys*
+        ports = await self.hass.async_add_executor_job(serial.tools.list_ports.comports)
+        _LOGGER.info("Ports: %s", ports)
+
+
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
