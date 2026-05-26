@@ -101,8 +101,7 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
         for port in ports:
             if not self._is_likely_serial_device(port):
                 continue
-            is_egreat = await self._test_port(port.device)
-            if is_egreat:
+            if await self._test_port(port.device):
                 detected_ports.append(port.device)
                 break
 
@@ -145,7 +144,7 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id = "manual",
             data_schema = vol.Schema({
                 vol.Required(CONF_PORT): vol.In(port_options),
-                vol.Required(CONF_BAUDRATE, default = 9600):vol.In([9600])
+                vol.Required(CONF_BAUDRATE, default = 9600):vol.In([2400, 4800, 9600, 19200, 38400, 57600, 115200])
             }),
             errors = errors
         )
@@ -153,9 +152,6 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
     async def _show_manual_fallback(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         # 未自动识别到时，需要手动选择
         return await self.async_step_manual(user_input)
-
-    # async def async_show_form(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        #
 
         """errors: dict[str, str] = {}
         if user_input is not None:
