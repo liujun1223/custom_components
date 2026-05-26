@@ -46,7 +46,7 @@ class EgreatPlayer:
                 return False
 
         try:
-            self._serial_connection.write(command.encode())
+            self._serial_connection.write(command)
             _LOGGER.debug("Send command: %s", command.hex())
             return True
         except Exception as e:

@@ -13,52 +13,7 @@ from .const import DOMAIN, CONF_PORT, CONF_BAUDRATE
 
 _LOGGER = logging.getLogger(__name__)
 
-# TODO adjust the data schema to the data that you need
-STEP_USER_DATA_SCHEMA = vol.Schema(
-    {
-
-    }
-)
-
-
-class PlaceholderHub:
-    """Placeholder class to make tests pass.
-
-    TODO Remove this placeholder class and replace with things from your PyPI package.
-    """
-
-    def __init__(self, host: str) -> None:
-        """Initialize."""
-        self.host = host
-
-    async def authenticate(self, username: str, password: str) -> bool:
-        """Test if we can authenticate with the host."""
-        return True
-
-
-async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
-    """Validate the user input allows us to connect.
-
-    Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
-    """
-    # TODO validate the data can be used to set up a connection.
-
-    # If your PyPI package is not built with async, pass your methods
-    # to the executor:
-    # await hass.async_add_executor_job(
-    #     your_validate_func, data[CONF_USERNAME], data[CONF_PASSWORD]
-    # )
-
-    # If you cannot connect:
-    # throw CannotConnect
-    # If the authentication is wrong:
-    # InvalidAuth
-
-    # Return info that you want to store in the config entry.
-    return {"title": "Name of the device"}
-
-
-class ConfigFlow(ConfigFlow, domain=DOMAIN):
+class ConfigFlow(ConfigFlow, domain = DOMAIN):
     """Handle a config flow for Egreat player."""
     # 初始化亿格瑞播放器配置流程
 
@@ -91,7 +46,8 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
 
         # 获取所有串口
         ports = await self.hass.async_add_executor_job(serial.tools.list_ports.comports)
-        _LOGGER.info("Ports: %s", ports)
+        _LOGGER.info(serial.tools.list_ports.comports)
+        _LOGGER.info("Ports: %s", [p.device for p in ports])
 
         if not ports:
             errors["base"] = "no_ports_found"
@@ -101,8 +57,10 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
         for port in ports:
             if not self._is_likely_serial_device(port):
                 continue
+            _LOGGER.info("Test port: %s", port.device)
             if await self._test_port(port.device):
                 detected_ports.append(port.device)
+                _LOGGER.info("Found Egreat Player on port: %s", port.device)
                 break
 
         # 根据结果处理
@@ -125,13 +83,14 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
         errors = {}
 
         ports = await self.hass.async_add_executor_job(serial.tools.list_ports.comports)
-        _LOGGER.info("Ports: %s", ports)
+        _LOGGER.info("Ports: %s", [p.device for p in ports])
+
         port_options = {
             port.device: f"{port.device} - {port.description}" for port in ports
         }
 
         if not port_options:
-            port_options = {"/dev/ttyUSB0": "未检测到串口，请手动输入"}
+            port_options = {"/dev/ttyUSB0": "未检测到串口，请检查连接"}
             errors["base"] = "no_ports_found"
 
         if user_input is not None:
@@ -153,23 +112,14 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
         # 未自动识别到时，需要手动选择
         return await self.async_step_manual(user_input)
 
-        """errors: dict[str, str] = {}
-        if user_input is not None:
-            try:
-                info = await validate_input(self.hass, user_input)
-            except CannotConnect:
-                errors["base"] = "cannot_connect"
-            except InvalidAuth:
-                errors["base"] = "invalid_auth"
-            except Exception:
-                _LOGGER.exception("Unexpected exception")
-                errors["base"] = "unknown"
-            else:
-                return self.async_create_entry(title=info["title"], data=user_input)
+    def _is_likely_serial_device(self, port) -> bool:
+        # 检测是否是串口设备
+        exclude_keywords = ["Bluetooth", "Modem", "Fax", "keyboard"]
+        return
 
-        return self.async_show_form(
-            step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
-        )"""
+    def _test_port(self, port) -> bool:
+        # 测试串口
+        return
 
 
 class CannotConnect(HomeAssistantError):
