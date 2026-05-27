@@ -62,7 +62,7 @@ class EgreatMediaPlayer(MediaPlayerEntity):
         )
 
         # 初始状态
-        self._attr_state = MediaPlayerState.UNKNOWN
+        self._attr_state = MediaPlayerState.IDLE
 
     async def async_turn_on(self) -> None:
         """Turn on the player"""
