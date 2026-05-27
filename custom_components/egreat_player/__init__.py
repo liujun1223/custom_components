@@ -32,7 +32,7 @@ class EgreatPlayer:
     # 连接串口
     def connect(self) -> bool:
         try:
-            self._serial_connection = serial.Serial(self._port,self._baudrate,timeout = 1)
+            self._serial_connection = serial.Serial(self._port, self._baudrate, timeout = 1)
             _LOGGER.info("Connnected to egreat player on %s", self._port)
             return True
         except Exception as e:

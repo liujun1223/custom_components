@@ -4,12 +4,12 @@ import logging
 import voluptuous as vol
 import serial
 import serial.tools.list_ports
+import time
+import asyncio
 
 from typing import Any
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
-from .const import DOMAIN, CONF_PORT, CONF_BAUDRATE
+from .const import DOMAIN, CONF_PORT, CONF_BAUDRATE, CMD_STATUS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,12 +46,12 @@ class ConfigFlow(ConfigFlow, domain = DOMAIN):
 
         # 获取所有串口
         ports = await self.hass.async_add_executor_job(serial.tools.list_ports.comports)
-        _LOGGER.info(serial.tools.list_ports.comports)
+        # print(serial.tools.list_ports.comports())
         _LOGGER.info("Ports: %s", [p.device for p in ports])
 
         if not ports:
             errors["base"] = "no_ports_found"
-            return await self._show_manual_fallback(errors)
+            return await self._show_manual_fallback()
 
         # 对串口逐个测试
         for port in ports:
@@ -108,23 +108,52 @@ class ConfigFlow(ConfigFlow, domain = DOMAIN):
             errors = errors
         )
 
-    async def _show_manual_fallback(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+    async def _show_manual_fallback(self, errors: dict[str, Any] | None = None) -> ConfigFlowResult:
         # 未自动识别到时，需要手动选择
-        return await self.async_step_manual(user_input)
+        return await self.async_step_manual()
 
     def _is_likely_serial_device(self, port) -> bool:
         # 检测是否是串口设备
-        exclude_keywords = ["Bluetooth", "Modem", "Fax", "keyboard"]
-        return
+        # 排除蓝牙，调制解调器等
+        exclude_keywords = ["Bluetooth", "Modem", "Fax", "Keyboard", "Mouse"]
+        for keyword in exclude_keywords:
+            if keyword in port.description:
+                _LOGGER.debug("Excluding %s due to keyword: %s", port.device, keyword)
+                return False
 
-    def _test_port(self, port) -> bool:
-        # 测试串口
-        return
+            # 优先选择USB串口设备
+        if "USB" in port.description or "UART" in port.description:
+            _LOGGER.debug("Including %s as USB/UART device", port.device)
+            return True
 
+        # 根据VID/PID判断（常见USB转串口芯片）
+        # FTDI: 0x0403, Silicon Labs: 0x10C4, Prolific: 0x067B, CH340: 0x1A86
+        if port.vid in [0x0403, 0x10C4, 0x067B, 0X1A86]:
+            _LOGGER.debug("Including %s based on VID/PID", port.device)
+            return True
 
-class CannotConnect(HomeAssistantError):
-    """Error to indicate we cannot connect."""
+        # 如果是Linux的串口，也进行测试
+        if port.device.startswith("/dev/ttyS") or port.device.startswith("/dev/ttyACM"):
+            _LOGGER.debug("Including %s as standard serial port", port.device)
+            return True
 
+        _LOGGER.debug("Excluding %s - no criteria matched", port.device)
+        return False
 
-class InvalidAuth(HomeAssistantError):
-    """Error to indicate there is invalid auth."""
+    async def _test_port(self, port) -> bool:
+        # 测试端口连接的是否是亿格瑞播放器
+        try:
+            result = await self.hass.async_add_executor_job(
+                self._sync_test_port, port, 9600
+            )
+            if result:
+                _LOGGER.info("Port %s responded, identified as Egreat Player", port)
+                return True
+        except Exception as e:
+            _LOGGER.debug("Error testing %s: %s", port, e)
+
+        return False
+
+    def _sync_test_port(self, port: str, baudrate: int) -> bool:
+        # 同步执行的端口测试
+        try:
