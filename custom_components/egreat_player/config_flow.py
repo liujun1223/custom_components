@@ -42,11 +42,10 @@ class ConfigFlow(ConfigFlow, domain = DOMAIN):
         # 自动识别串口
         # 串口为/dev/ttys*
         errors = {}
-        detected_ports = []
+        test_ports = []
 
         # 获取所有串口
         ports = await self.hass.async_add_executor_job(serial.tools.list_ports.comports)
-        # print(serial.tools.list_ports.comports())
         _LOGGER.info("Ports: %s", [p.device for p in ports])
 
         if not ports:
@@ -55,28 +54,36 @@ class ConfigFlow(ConfigFlow, domain = DOMAIN):
 
         # 对串口逐个测试
         for port in ports:
-            if not self._is_likely_serial_device(port):
-                continue
-            _LOGGER.info("Test port: %s", port.device)
-            if await self._test_port(port.device):
-                detected_ports.append(port.device)
-                _LOGGER.info("Found Egreat Player on port: %s", port.device)
-                break
+            if  self._is_likely_serial_device(port):
+                test_ports.append(port.device)
+                _LOGGER.info("Will test port: %s", port.device)
 
-        # 根据结果处理
-        if detected_ports:
-            # 找到了，直接创建
-            return self.async_create_entry(
-                title = "Egreat Player",
-                data = {
-                    CONF_PORT: detected_ports[0],
-                    CONF_BAUDRATE: 9600  # 默认波特率
-                }
-            )
-        else:
-            # 没找到，用手动配置
-            errors["base"] = "no_device_found"
-            return await self._show_manual_fallback(errors)
+        if not test_ports:
+            errors["base"] = "no_ports_to_test"
+            return await self._show_manual_fallback()
+
+        # 创建所有测试任务
+        tasks = [self._test_port(port) for port in test_ports]
+
+        # 并发执行所有测试
+        results = await asyncio.gather(*tasks, return_exceptions = True)
+
+        # 查找第一个成功的端口
+        for port, result in zip(test_ports, results):
+            if result is True:
+                _LOGGER.info("Found Egreat Player on port: %s", port)
+                return self.async_create_entry(
+                    title = "Egreat Player",
+                    data = {
+                        CONF_PORT: port,
+                        CONF_BAUDRATE: 9600
+                    }
+                )
+            elif isinstance(result, Exception):
+                _LOGGER.debug("Port %s test failed: %s", port, result)
+
+        errors["base"] = "no_device_found"
+        return await self._show_manual_fallback()
 
     async def async_step_manual(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         # 手动选择
@@ -157,3 +164,14 @@ class ConfigFlow(ConfigFlow, domain = DOMAIN):
     def _sync_test_port(self, port: str, baudrate: int) -> bool:
         # 同步执行的端口测试
         try:
+            with serial.Serial(port, baudrate, timeout = 1) as ser:
+                time.sleep(0.2)
+                ser.reset_input_buffer()
+                ser.reset_output_buffer()
+                ser.write(CMD_STATUS)
+                time.sleep(0.3)
+                response = ser.read(20)
+                return len(response) > 0
+        except Exception as e:
+            _LOGGER.debug("Failed to test %s: %s", port, e)
+            return False
