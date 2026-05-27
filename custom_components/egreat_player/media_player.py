@@ -128,7 +128,7 @@ class EgreatMediaPlayer(MediaPlayerEntity):
             self._device.send_command, CMD_VOLUME_DOWN
         )
 
-    async def async_mute_volume(self) -> None:
+    async def async_mute_volume(self, muted: bool) -> None:
         """send mute command"""
         await self.hass.async_add_executor_job(
             self._device.send_command, CMD_MUTE
