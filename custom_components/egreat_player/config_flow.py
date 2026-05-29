@@ -151,7 +151,7 @@ class ConfigFlow(ConfigFlow, domain = DOMAIN):
         # 测试端口连接的是否是亿格瑞播放器
         try:
             result = await self.hass.async_add_executor_job(
-                self._sync_test_port, port, 9600
+                self._sync_test_port, port
             )
             if result:
                 _LOGGER.info("Port %s responded, identified as Egreat Player", port)
@@ -161,10 +161,10 @@ class ConfigFlow(ConfigFlow, domain = DOMAIN):
 
         return False
 
-    def _sync_test_port(self, port: str, baudrate: int) -> bool:
+    def _sync_test_port(self, port: str) -> bool:
         # 同步执行的端口测试
         try:
-            with serial.Serial(port, baudrate, timeout = 1) as ser:
+            with serial.Serial(port, timeout = 1) as ser:
                 time.sleep(0.2)
                 ser.reset_input_buffer()
                 ser.reset_output_buffer()
