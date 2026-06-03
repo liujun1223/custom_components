@@ -148,3 +148,9 @@ class EgreatRemote(RemoteEntity):
                 _LOGGER.warning("Failed to send command: %s", cmd)
             else:
                 _LOGGER.debug("Command sent: %s", cmd)
+
+    async def async_turn_on(self, **kwargs) -> None:
+        await self._send_command(CMD_POWER_ON)
+
+    async def async_turn_off(self, **kwargs) -> None:
+        await self._send_command(CMD_POWER_OFF)
