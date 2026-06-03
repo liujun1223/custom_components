@@ -6,14 +6,14 @@ import serial
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from .const import DOMAIN, CONF_PORT, CONF_BAUDRATE
+from .const import DOMAIN, CONF_PORT, CONF_BAUDRATE, RESPONSE_HEADER
 
 _LOGGER = logging.getLogger(__name__)
 
 # TODO List the platforms that you want to support.
 # For your initial PR, limit it to 1 platform.
 # 声明集成支持的平台：MEDIA_PLAYER
-_PLATFORMS: list[Platform] = [Platform.MEDIA_PLAYER]
+_PLATFORMS: list[Platform] = [Platform.MEDIA_PLAYER, Platform.REMOTE]
 
 # TODO Create ConfigEntry type alias with API object
 # TODO Rename type alias and update all entry annotations
@@ -56,8 +56,28 @@ class EgreatPlayer:
             return False
 
         try:
+            # 清空历史缓存
+            self._serial_connection.reset_input_buffer()
+
+            # 发送命令
             self._serial_connection.write(command)
+            self._serial_connection.flush()
             _LOGGER.debug("Send command: %s", command.hex())
+
+            # 读取设备反馈码，直到D0
+            response = self._serial_connection.read_until(b"\xD0")
+            _LOGGER.debug("Response: %s", response.hex())
+
+            # 没收到反馈
+            if not response:
+                _LOGGER.warning("No response received")
+                return False
+
+            # 验证协议头
+            if response[0] != RESPONSE_HEADER:
+                _LOGGER.warning("Invalid response header: %s", response.hex())
+                return False
+
             return True
         except Exception as e:
             self.available = False
