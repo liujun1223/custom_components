@@ -8,12 +8,21 @@ import time
 import asyncio
 
 from typing import Any
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
-from .const import DOMAIN, CONF_PORT, CONF_BAUDRATE, CMD_STATUS
+from homeassistant import config_entries
+from homeassistant.config_entries import ConfigFlowResult
+from .const import (
+    DOMAIN,
+    CONF_PORT,
+    CONF_BAUDRATE,
+    CMD_STATUS,
+    SUPPORTED_USB_VIDS,
+    DEFAULT_BAUDRATE,
+    RESPONSE_HEADER
+)
 
 _LOGGER = logging.getLogger(__name__)
 
-class ConfigFlow(ConfigFlow, domain = DOMAIN):
+class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
     """Handle a config flow for Egreat player."""
     # 初始化亿格瑞播放器配置流程
 
@@ -24,43 +33,39 @@ class ConfigFlow(ConfigFlow, domain = DOMAIN):
         # 处理初始的步骤
         # 让用户选择自动识别还是手动选择
         if user_input is not None:
+            # 自动扫描
             if user_input.get("auto_detect"):
                 return await self.async_step_auto_detect()
+            # 手动选择
             return await self.async_step_manual()
 
         return self.async_show_form(
             step_id = "user",
             data_schema = vol.Schema({
                 vol.Required("auto_detect", default = True): bool,
-            }),
-            description_placeholders = {
-                "info": "选择[自动识别]将自动查找亿格瑞播放器"
-            }
+            })
         )
 
     async def async_step_auto_detect(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         # 自动识别串口
         # 串口为/dev/ttys*
-        errors = {}
-        test_ports = []
 
         # 获取所有串口
         ports = await self.hass.async_add_executor_job(serial.tools.list_ports.comports)
         _LOGGER.info("Ports: %s", [p.device for p in ports])
 
+        # 没有发现串口
         if not ports:
-            errors["base"] = "no_ports_found"
-            return await self._show_manual_fallback()
+            return await self.async_step_manual()
 
-        # 对串口逐个测试
-        for port in ports:
-            if  self._is_likely_serial_device(port):
-                test_ports.append(port.device)
-                _LOGGER.info("Will test port: %s", port.device)
+        test_ports = [
+            port.device for port in ports if self._is_likely_serial_device(port)
+        ]
+        _LOGGER.debug("Filtered ports: %s", test_ports)
 
+        # 没有可测试的设备
         if not test_ports:
-            errors["base"] = "no_ports_to_test"
-            return await self._show_manual_fallback()
+            return await self.async_step_manual()
 
         # 创建所有测试任务
         tasks = [self._test_port(port) for port in test_ports]
@@ -68,27 +73,31 @@ class ConfigFlow(ConfigFlow, domain = DOMAIN):
         # 并发执行所有测试
         results = await asyncio.gather(*tasks, return_exceptions = True)
 
-        # 查找第一个成功的端口
+        # 查找设备成功
         for port, result in zip(test_ports, results):
             if result is True:
                 _LOGGER.info("Found Egreat Player on port: %s", port)
+
+                # 防止重复添加
+                await self.async_set_unique_id(port)
+                self._abort_if_unique_id_configured()
+
                 return self.async_create_entry(
                     title = "Egreat Player",
                     data = {
                         CONF_PORT: port,
-                        CONF_BAUDRATE: 9600
+                        CONF_BAUDRATE: DEFAULT_BAUDRATE
                     }
                 )
-            elif isinstance(result, Exception):
-                _LOGGER.debug("Port %s test failed: %s", port, result)
 
-        errors["base"] = "no_device_found"
-        return await self._show_manual_fallback()
+        # 自动扫描失败，进入手动模式
+        return await self.async_step_manual()
 
     async def async_step_manual(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         # 手动选择
         errors = {}
 
+        # 获取串口列表
         ports = await self.hass.async_add_executor_job(serial.tools.list_ports.comports)
         _LOGGER.info("Ports: %s", [p.device for p in ports])
 
@@ -96,82 +105,90 @@ class ConfigFlow(ConfigFlow, domain = DOMAIN):
             port.device: f"{port.device} - {port.description}" for port in ports
         }
 
-        if not port_options:
-            port_options = {"/dev/ttyUSB0": "未检测到串口，请检查连接"}
-            errors["base"] = "no_ports_found"
-
+        # 用户提交
         if user_input is not None:
-            return self.async_create_entry(
-                title = "Egreat Player",
-                data = user_input
-            )
+            port = user_input[CONF_PORT]
+            # 验证设备
+            valid = await self._test_port(port)
+
+            if not valid:
+                errors["base"] = "no_device_found"
+            else:
+                # 防止重复添加
+                await self.async_set_unique_id(port)
+                self._abort_if_unique_id_configured()
+                return self.async_create_entry(
+                    title = "Egreat Player",
+                    data = user_input
+                )
 
         return self.async_show_form(
             step_id = "manual",
             data_schema = vol.Schema({
                 vol.Required(CONF_PORT): vol.In(port_options),
-                vol.Required(CONF_BAUDRATE, default = 9600):vol.In([2400, 4800, 9600, 19200, 38400, 57600, 115200])
+                vol.Required(CONF_BAUDRATE, default = DEFAULT_BAUDRATE): vol.In([2400, 4800, 9600, 19200, 38400, 57600, 115200])
             }),
             errors = errors
         )
-
-    async def _show_manual_fallback(self, errors: dict[str, Any] | None = None) -> ConfigFlowResult:
-        # 未自动识别到时，需要手动选择
-        return await self.async_step_manual()
 
     def _is_likely_serial_device(self, port) -> bool:
         # 检测是否是串口设备
         # 排除蓝牙，调制解调器等
         exclude_keywords = ["Bluetooth", "Modem", "Fax", "Keyboard", "Mouse"]
-        for keyword in exclude_keywords:
-            if keyword in port.description:
-                _LOGGER.debug("Excluding %s due to keyword: %s", port.device, keyword)
-                return False
 
-            # 优先选择USB串口设备
+        # 排除明显无关设备
+        if any(
+            keyword in port.description
+            for keyword in exclude_keywords
+        ):
+            return False
+
+        # VID白名单
+        if port.vid in SUPPORTED_USB_VIDS:
+            return True
+
+        # 常见USB串口
         if "USB" in port.description or "UART" in port.description:
-            _LOGGER.debug("Including %s as USB/UART device", port.device)
             return True
 
-        # 根据VID/PID判断（常见USB转串口芯片）
-        # FTDI: 0x0403, Silicon Labs: 0x10C4, Prolific: 0x067B, CH340: 0x1A86
-        if port.vid in [0x0403, 0x10C4, 0x067B, 0X1A86]:
-            _LOGGER.debug("Including %s based on VID/PID", port.device)
+        # Linux常见串口
+        if port.device.startswith("/dev/ttyUSB") or port.device.startswith("/dev/ttyACM"):
             return True
 
-        # 如果是Linux的串口，也进行测试
-        if port.device.startswith("/dev/ttyS") or port.device.startswith("/dev/ttyACM"):
-            _LOGGER.debug("Including %s as standard serial port", port.device)
-            return True
-
-        _LOGGER.debug("Excluding %s - no criteria matched", port.device)
         return False
 
-    async def _test_port(self, port) -> bool:
-        # 测试端口连接的是否是亿格瑞播放器
+    async def _test_port(self, port: str) -> bool:
+        # 异步测试串口
+
         try:
             result = await self.hass.async_add_executor_job(
                 self._sync_test_port, port
             )
-            if result:
-                _LOGGER.info("Port %s responded, identified as Egreat Player", port)
-                return True
+            return result
         except Exception as e:
             _LOGGER.debug("Error testing %s: %s", port, e)
-
-        return False
+            return False
 
     def _sync_test_port(self, port: str) -> bool:
         # 同步执行的端口测试
         try:
-            with serial.Serial(port, timeout = 1) as ser:
+            with serial.Serial(port, DEFAULT_BAUDRATE, timeout = 1) as ser:
+                # 等待串口稳定
                 time.sleep(0.2)
+                # 清空缓冲区
                 ser.reset_input_buffer()
                 ser.reset_output_buffer()
+                # 发送状态查询命令
                 ser.write(CMD_STATUS)
+                # 等待设备响应
                 time.sleep(0.3)
                 response = ser.read(20)
-                return len(response) > 0
+                _LOGGER.debug("Port %s response: %s", port, response.hex())
+
+                # 验证协议响应
+                if not response:
+                    return False
+                return response[0] == RESPONSE_HEADER
         except Exception as e:
             _LOGGER.debug("Failed to test %s: %s", port, e)
             return False

@@ -4,9 +4,18 @@ DOMAIN = "egreat_player"
 CONF_PORT = "port"
 CONF_BAUDRATE = "baudrate"
 
+# 支持USB转串口的芯片 VID
+# FTDI: 0x0403, Silicon Labs: 0x10C4, Prolific: 0x067B, CH340: 0x1A86
+SUPPORTED_USB_VIDS = [0x0403, 0x10C4, 0x067B, 0X1A86]
+
+# 默认波特率
+DEFAULT_BAUDRATE = 9600
+
 # 亿格瑞播放器RS-232控制指令集（十六进制）
 # 开关机状态查询指令（判断是不是亿格瑞播放器）
 CMD_STATUS      = bytes([0x21, 0x01, 0x05, 0x02, 0x01, 0x34, 0x0D])
+# 响应头
+RESPONSE_HEADER = 0x23
 
 # 基础控制指令
 CMD_POWER_ON    = bytes([0x21, 0x01, 0x08, 0x02, 0x19, 0x34, 0x0D])
