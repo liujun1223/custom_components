@@ -32,7 +32,7 @@ class EgreatCommandSelect(SelectEntity):
         self._device = device
         self._attr_name = "Egreat Command"
         self._attr_unique_id = (f"{entry_id}_command")
-        self._attr_options = sorted(COMMAND_MAP.keys())
+        self._attr_options = list(COMMAND_MAP.keys())
 
     @property
     def available(self) -> bool:
