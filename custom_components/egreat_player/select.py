@@ -34,9 +34,6 @@ class EgreatCommandSelect(SelectEntity):
         self._attr_unique_id = (f"{entry_id}_command")
         self._attr_options = sorted(COMMAND_MAP.keys())
 
-        # 默认选项
-        self._attr_current_option = self._attr_options[0]
-
     @property
     def available(self) -> bool:
         """设备是否在线"""
@@ -64,8 +61,6 @@ class EgreatCommandSelect(SelectEntity):
         # 调用init文件里面的统一发送函数
         success = await self.hass.async_add_executor_job(self._device.send_command, command)
         if success:
-            # 更新当前选项
-            self._attr_current_option = option
             self.async_write_ha_state()
             _LOGGER.debug("Command executed: %s", option)
         else:
