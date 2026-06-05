@@ -13,7 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 # TODO List the platforms that you want to support.
 # For your initial PR, limit it to 1 platform.
 # 声明集成支持的平台：MEDIA_PLAYER
-_PLATFORMS: list[Platform] = [Platform.MEDIA_PLAYER, Platform.REMOTE]
+_PLATFORMS: list[Platform] = [Platform.MEDIA_PLAYER, Platform.REMOTE, Platform.SELECT]
 
 # TODO Create ConfigEntry type alias with API object
 # TODO Rename type alias and update all entry annotations

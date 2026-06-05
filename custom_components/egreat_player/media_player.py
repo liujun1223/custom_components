@@ -64,6 +64,7 @@ class EgreatMediaPlayer(MediaPlayerEntity):
         self._attr_is_volume_muted = False
 
     # 返回设备是否在线
+    @property
     def available(self) -> bool:
         return self._device.available
 

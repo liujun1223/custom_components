@@ -121,6 +121,7 @@ class EgreatRemote(RemoteEntity):
         self._attr_name = "Egreat Remote"
         self._attr_unique_id = (f"{entry_id}_remote")
 
+    @property
     def available(self) -> bool:
         """设备是否在线"""
 
