@@ -121,9 +121,6 @@ class EgreatRemote(RemoteEntity):
         self._attr_name = "Egreat Remote"
         self._attr_unique_id = (f"{entry_id}_remote")
 
-        # 当前活动
-        self._current_activity = None
-
     @property
     def available(self) -> bool:
         """设备是否在线"""
@@ -153,40 +150,8 @@ class EgreatRemote(RemoteEntity):
             else:
                 _LOGGER.debug("Command sent: %s", cmd)
 
-    @property
-    def current_activity(self) -> str | None:
-        """当前活动"""
-
-        return self._current_activity
-
-    @property
-    def activity_list(self) -> list[str]:
-        """返回可选的活动列表"""
-
-        return sorted(COMMAND_MAP.keys())
-
     async def async_turn_on(self, activity: str | None = None, **kwargs) -> None:
-        """开机或者执行活动"""
-
-        # 用户从下拉列表选择活动
-        if activity:
-            command = COMMAND_MAP.get(activity.lower())
-            if command:
-                success = await self._send_command(command)
-                if success:
-                    self._current_activity = activity
-                    self.async_write_ha_state()
-
-                return
-
-        # 默认开机
         await self._send_command(CMD_POWER_ON)
 
     async def async_turn_off(self, **kwargs) -> None:
         await self._send_command(CMD_POWER_OFF)
-
-    @property
-    def extra_state_attributes(self):
-        """附加属性"""
-
-        return {"supported_commands": sorted(COMMAND_MAP.keys())}
