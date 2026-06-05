@@ -18,7 +18,7 @@ _PLATFORMS: list[Platform] = [Platform.MEDIA_PLAYER, Platform.REMOTE, Platform.S
 # TODO Create ConfigEntry type alias with API object
 # TODO Rename type alias and update all entry annotations
 # 配置入口类型别名
-EgreatPlayerConfigEntry = ConfigEntry
+type EgreatPlayerConfigEntry = ConfigEntry[EgreatPlayer]
 
 
 class EgreatPlayer:
