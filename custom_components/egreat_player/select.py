@@ -11,7 +11,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from . import EgreatPlayer, EgreatPlayerConfigEntry
 from .remote import COMMAND_MAP
 
-_LOGGER = logging(__name__)
+_LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, entry: EgreatPlayerConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """创建select实体"""
