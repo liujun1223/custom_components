@@ -52,43 +52,47 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
 
         # 获取所有串口
         ports = await self.hass.async_add_executor_job(serial.tools.list_ports.comports)
-        _LOGGER.info("Ports: %s", [p.device for p in ports])
+        _LOGGER.info("Available ports: %s", [p.device for p in ports])
 
         # 没有发现串口
         if not ports:
+            _LOGGER.warning("no serial ports found")
             return await self.async_step_manual()
 
         test_ports = [
             port.device for port in ports if self._is_likely_serial_device(port)
         ]
-        _LOGGER.debug("Filtered ports: %s", test_ports)
+        _LOGGER.info("Candidate ports: %s", test_ports)
 
         # 没有可测试的设备
         if not test_ports:
             return await self.async_step_manual()
 
-        # 创建所有测试任务
-        tasks = [self._test_port(port) for port in test_ports]
-
-        # 并发执行所有测试
-        results = await asyncio.gather(*tasks, return_exceptions = True)
-
         # 查找设备成功
-        for port, result in zip(test_ports, results):
-            if result is True:
-                _LOGGER.info("Found Egreat Player on port: %s", port)
+        for port in test_ports:
+            _LOGGER.debug("Testing port: %s", port)
+            try:
+                valid = await self._test_port(port)
+            except Exception as e:
+                _LOGGER.debug("Failed testing %s: %s", port, e)
+                continue
+            if not valid:
+                continue
+            _LOGGER.info("Found Egreat Player on port: %s", port)
 
-                # 防止重复添加
-                await self.async_set_unique_id(port)
-                self._abort_if_unique_id_configured()
+            # 防止重复添加
+            await self.async_set_unique_id(port)
+            self._abort_if_unique_id_configured()
 
-                return self.async_create_entry(
-                    title = "Egreat Player",
-                    data = {
-                        CONF_PORT: port,
-                        CONF_BAUDRATE: DEFAULT_BAUDRATE
-                    }
-                )
+            return self.async_create_entry(
+                title = "Egreat Player ({port})",
+                data = {
+                    CONF_PORT: port,
+                    CONF_BAUDRATE: DEFAULT_BAUDRATE
+                }
+            )
+
+        _LOGGER.warning("Auto detection failed")
 
         # 自动扫描失败，进入手动模式
         return await self.async_step_manual()
