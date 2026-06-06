@@ -146,9 +146,8 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
             hex(port.pid) if port.pid else None,
             port.description,
         )
-        return True
 
-        """exclude_keywords = ["Bluetooth", "Modem", "Fax", "Keyboard", "Mouse"]
+        exclude_keywords = ["Bluetooth", "Modem", "Fax", "Keyboard", "Mouse"]
 
         # 排除明显无关设备
         if any(
@@ -166,10 +165,10 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
             return True
 
         # Linux常见串口
-        if port.device.startswith("/dev/ttyUSB") or port.device.startswith("/dev/ttyACM"):
+        if port.device.startswith("/dev/ttyUSB") or port.device.startswith("/dev/ttyS"):
             return True
 
-        return False"""
+        return False
 
     async def _test_port(self, port: str) -> bool:
         # 异步测试串口
