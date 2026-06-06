@@ -56,7 +56,7 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
 
         # 没有发现串口
         if not ports:
-            _LOGGER.warning("no serial ports found")
+            _LOGGER.warning("No Serial Ports Found")
             return await self.async_step_manual()
 
         test_ports = [
@@ -138,7 +138,17 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
     def _is_likely_serial_device(self, port) -> bool:
         # 检测是否是串口设备
         # 排除蓝牙，调制解调器等
-        exclude_keywords = ["Bluetooth", "Modem", "Fax", "Keyboard", "Mouse"]
+
+        _LOGGER.warning(
+            "Port=%s VID=%s PID=%s DESC=%s",
+            port.device,
+            hex(port.vid) if port.vid else None,
+            hex(port.pid) if port.pid else None,
+            port.description,
+        )
+        return True
+
+        """exclude_keywords = ["Bluetooth", "Modem", "Fax", "Keyboard", "Mouse"]
 
         # 排除明显无关设备
         if any(
@@ -159,7 +169,7 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
         if port.device.startswith("/dev/ttyUSB") or port.device.startswith("/dev/ttyACM"):
             return True
 
-        return False
+        return False"""
 
     async def _test_port(self, port: str) -> bool:
         # 异步测试串口
