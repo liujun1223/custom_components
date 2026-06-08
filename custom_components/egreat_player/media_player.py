@@ -6,6 +6,7 @@ from homeassistant.components.media_player import (MediaPlayerEntity, MediaPlaye
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import (
+    DOMAIN,
     CMD_POWER_ON,
     CMD_POWER_OFF,
     CMD_VOLUME_UP,
@@ -18,8 +19,22 @@ from .const import (
     CMD_NEXT,
 )
 from . import EgreatPlayer, EgreatPlayerConfigEntry
+from homeassistant.helpers.device_registry import DeviceInfo
 
 _LOGGER = logging.getLogger(__name__)
+
+# 设备信息
+@property
+def device_info(self):
+    return DeviceInfo(
+        identifiers = {(DOMAIN, self._device.port)},
+        name = "K5",
+        manufacturer = "Egreat",
+        moudel = "K5",
+        sw_version = "v3.3.2.3",
+        configuration_url="http://www.egreatworld.com/"
+    )
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: EgreatPlayerConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Set up the Egreat media player platform."""
@@ -41,7 +56,8 @@ class EgreatMediaPlayer(MediaPlayerEntity):
 
         self._device = device
         # 实体名称
-        self._attr_name = "Egreat Player"
+        self._attr_name = None
+        self._attr_has_entity_name = True
         # 唯一ID
         self._attr_unique_id = f"{entry_id}_egreat_player"
 

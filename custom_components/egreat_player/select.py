@@ -6,10 +6,23 @@ from homeassistant.components.select import SelectEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .remote import COMMAND_MAP
+from .remote import COMMAND_MAP, DOMAIN
 from . import EgreatPlayer, EgreatPlayerConfigEntry
+from homeassistant.helpers.device_registry import DeviceInfo
 
 _LOGGER = logging.getLogger(__name__)
+
+# 设备信息
+@property
+def device_info(self):
+    return DeviceInfo(
+        identifiers = {(DOMAIN, self._device.port)},
+        name = "K5",
+        manufacturer = "Egreat",
+        moudel = "K5",
+        sw_version = "v3.3.2.3",
+        configuration_url="http://www.egreatworld.com/"
+    )
 
 async def async_setup_entry(hass: HomeAssistant, entry: EgreatPlayerConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """创建select实体"""
@@ -30,7 +43,8 @@ class EgreatCommandSelect(SelectEntity):
         """初始化实体"""
 
         self._device = device
-        self._attr_name = "Egreat Command"
+        self._attr_name = "Command"
+        self._attr_has_entity_name = True
         self._attr_unique_id = (f"{entry_id}_command")
         self._attr_options = list(COMMAND_MAP.keys())
 

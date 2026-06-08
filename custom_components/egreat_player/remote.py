@@ -11,8 +11,21 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import EgreatPlayer, EgreatPlayerConfigEntry
 from .const import *
+from homeassistant.helpers.device_registry import DeviceInfo
 
 _LOGGER = logging.getLogger(__name__)
+
+# 设备信息
+@property
+def device_info(self):
+    return DeviceInfo(
+        identifiers = {(DOMAIN, self._device.port)},
+        name = "K5",
+        manufacturer = "Egreat",
+        moudel = "K5",
+        sw_version = "v3.3.2.3",
+        configuration_url="http://www.egreatworld.com/"
+    )
 
 async def async_setup_entry(hass: HomeAssistant, entry: EgreatPlayerConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """加载remote实体"""
@@ -118,7 +131,8 @@ class EgreatRemote(RemoteEntity):
         """初始化遥控器模块"""
 
         self._device = device
-        self._attr_name = "Egreat Remote"
+        self._attr_name = "Remote"
+        self._attr_has_entity_name = True
         self._attr_unique_id = (f"{entry_id}_remote")
 
     @property
