@@ -56,7 +56,7 @@ class EgreatMediaPlayer(MediaPlayerEntity):
 
         self._device = device
         # 实体名称
-        self._attr_name = None
+        self._attr_name = "Media Player"
         self._attr_has_entity_name = True
         # 唯一ID
         self._attr_unique_id = f"{entry_id}_egreat_player"
