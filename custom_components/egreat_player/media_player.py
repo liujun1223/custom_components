@@ -23,19 +23,6 @@ from homeassistant.helpers.device_registry import DeviceInfo
 
 _LOGGER = logging.getLogger(__name__)
 
-# 设备信息
-@property
-def device_info(self):
-    return DeviceInfo(
-        identifiers = {(DOMAIN, self._device.port)},
-        name = "K5",
-        manufacturer = "Egreat",
-        moudel = "K5",
-        sw_version = "v3.3.2.3",
-        configuration_url="http://www.egreatworld.com/"
-    )
-
-
 async def async_setup_entry(hass: HomeAssistant, entry: EgreatPlayerConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Set up the Egreat media player platform."""
     # 初始化播放器实体
@@ -78,6 +65,18 @@ class EgreatMediaPlayer(MediaPlayerEntity):
         self._attr_state = MediaPlayerState.IDLE
         # 默认静音状态
         self._attr_is_volume_muted = False
+
+    # 设备信息
+    @property
+    def device_info(self):
+        return DeviceInfo(
+            identifiers = {(DOMAIN, self._device.port)},
+            name = "K5",
+            manufacturer = "Egreat",
+            moudel = "K5",
+            sw_version = "v3.3.2.3",
+            configuration_url="http://www.egreatworld.com/"
+        )
 
     # 返回设备是否在线
     @property
