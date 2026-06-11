@@ -8,7 +8,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .remote import COMMAND_MAP, DOMAIN
 from . import EgreatPlayer, EgreatPlayerConfigEntry
-from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.device_registry import DeviceInfo, CONNECTION_NETWORK_MAC
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,10 +48,11 @@ class EgreatCommandSelect(SelectEntity):
     def device_info(self):
         return DeviceInfo(
             identifiers = {(DOMAIN, self._entry_id)},
+            connections = {(CONNECTION_NETWORK_MAC, self._device.mac_address)},
             name = "K5",
             manufacturer = "Egreat",
             model = "K5",
-            sw_version = "v3.3.2.3",
+            sw_version = self._device.firmware_version,
             configuration_url="http://www.egreatworld.com/"
         )
 
