@@ -42,6 +42,7 @@ class EgreatMediaPlayer(MediaPlayerEntity):
         # 初始化播放器
 
         self._device = device
+        self._entry_id = entry_id
         # 实体名称
         self._attr_name = "Media Player"
         self._attr_has_entity_name = True
@@ -70,7 +71,7 @@ class EgreatMediaPlayer(MediaPlayerEntity):
     @property
     def device_info(self):
         return DeviceInfo(
-            identifiers = {(DOMAIN, self._device.mac)},
+            identifiers = {(DOMAIN, self._entry_id)},
             name = "K5",
             manufacturer = "Egreat",
             model = "K5",

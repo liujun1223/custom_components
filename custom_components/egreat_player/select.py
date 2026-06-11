@@ -31,6 +31,7 @@ class EgreatCommandSelect(SelectEntity):
         """初始化实体"""
 
         self._device = device
+        self._entry_id = entry_id
         self._attr_name = "Command"
         self._attr_has_entity_name = True
         self._attr_unique_id = (f"{entry_id}_command")
@@ -46,7 +47,7 @@ class EgreatCommandSelect(SelectEntity):
     @property
     def device_info(self):
         return DeviceInfo(
-            identifiers = {(DOMAIN, self._device.mac)},
+            identifiers = {(DOMAIN, self._entry_id)},
             name = "K5",
             manufacturer = "Egreat",
             model = "K5",

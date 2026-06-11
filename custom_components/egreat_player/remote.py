@@ -119,6 +119,7 @@ class EgreatRemote(RemoteEntity):
         """初始化遥控器模块"""
 
         self._device = device
+        self._entry_id = entry_id
         self._attr_name = "Remote"
         self._attr_has_entity_name = True
         self._attr_unique_id = (f"{entry_id}_remote")
@@ -133,7 +134,7 @@ class EgreatRemote(RemoteEntity):
     @property
     def device_info(self):
         return DeviceInfo(
-            identifiers = {(DOMAIN, self._device.mac)},
+            identifiers = {(DOMAIN, self._entry_id)},
             name = "K5",
             manufacturer = "Egreat",
             model = "K5",
