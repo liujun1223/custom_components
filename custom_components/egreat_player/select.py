@@ -46,10 +46,10 @@ class EgreatCommandSelect(SelectEntity):
     @property
     def device_info(self):
         return DeviceInfo(
-            identifiers = {(DOMAIN, self._device.port)},
+            identifiers = {(DOMAIN, self._device.mac)},
             name = "K5",
             manufacturer = "Egreat",
-            moudel = "K5",
+            model = "K5",
             sw_version = "v3.3.2.3",
             configuration_url="http://www.egreatworld.com/"
         )
