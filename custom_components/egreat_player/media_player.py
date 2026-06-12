@@ -76,7 +76,7 @@ class EgreatMediaPlayer(MediaPlayerEntity):
             name = "K5",
             manufacturer = "Egreat",
             model = "K5",
-            sw_version = self._device.firmware_version,
+            sw_version = "v3.2.2.3",
             configuration_url = "http://www.egreatworld.com/"
         )
 
