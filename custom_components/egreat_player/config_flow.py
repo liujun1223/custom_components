@@ -13,6 +13,7 @@ from .const import (
     DOMAIN,
     CONF_PORT,
     CONF_BAUDRATE,
+    CONF_HOST,
     CMD_STATUS,
     SUPPORTED_USB_VIDS,
     DEFAULT_BAUDRATE,
@@ -87,7 +88,8 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
                 title = "K5",
                 data = {
                     CONF_PORT: port,
-                    CONF_BAUDRATE: DEFAULT_BAUDRATE
+                    CONF_BAUDRATE: DEFAULT_BAUDRATE,
+                    CONF_HOST: ""
                 }
             )
 
@@ -129,7 +131,8 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
             step_id = "manual",
             data_schema = vol.Schema({
                 vol.Required(CONF_PORT): vol.In(port_options),
-                vol.Required(CONF_BAUDRATE, default = DEFAULT_BAUDRATE): vol.In([2400, 4800, 9600, 19200, 38400, 57600, 115200])
+                vol.Required(CONF_BAUDRATE, default = DEFAULT_BAUDRATE): vol.In([2400, 4800, 9600, 19200, 38400, 57600, 115200]),
+                vol.Optional(CONF_HOST, description = {"suggested_value": ""}): str
             }),
             errors = errors
         )

@@ -2,11 +2,13 @@
 
 import logging
 import serial
+import subprocess
+import re
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from .const import DOMAIN, CONF_PORT, CONF_BAUDRATE, RESPONSE_HEADER
+from .const import DOMAIN, CONF_PORT, CONF_BAUDRATE, RESPONSE_HEADER, CONF_HOST
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,13 +26,23 @@ type EgreatPlayerConfigEntry = ConfigEntry[EgreatPlayer]
 class EgreatPlayer:
     """Egreat Player Api"""
     # 初始化串口连接参数
-    def __init__(self, port:str, baudrate:int) -> None:
+    def __init__(self, port: str, baudrate: int, host: str | None = None) -> None:
         self._port = port
         self._baudrate = baudrate
+        self.host = host
+        # 初始化MAC地址
+        self.mac_address: str | None = None
         # 串口连接对象
         self._serial_connection = None
         # 设备在线状态
         self.available = False
+
+        # 如果初始化时有host，则尝试获取MAC
+        if self.host:
+            try:
+                self.mac_address = self.get_mac_from_ip(self.host)
+            except Exception as e:
+                self.mac_address = None
 
     # 连接串口设备
     def connect(self) -> bool:
@@ -84,12 +96,36 @@ class EgreatPlayer:
             _LOGGER.error("Error send command: %s", e)
             return False
 
-    #关闭串口连接
+    # 关闭串口连接
     def close(self) -> None:
         if self._serial_connection and self._serial_connection.is_open:
             self._serial_connection.close()
             _LOGGER.info("Closed connection to %s", self._port)
 
+    # 获取MAC地址
+    def get_mac_from_ip(self, ip: str) -> str | None:
+        try:
+            subprocess.run(
+                ["ping", "-c", "1", ip],
+                capture_output = True,
+                timeout = 1
+            )
+            result = subprocess.run(
+                ["arp", "-n", ip],
+                capture_output = True,
+                text = True,
+                timeout = 1
+            )
+            match = re.search(
+                r"([0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}",
+                result.stdout
+            )
+            if match:
+                return match.group(0)
+        except Exception as e:
+            _LOGGER.warning("Failed to get MAC for IP %s: %s", ip, e)
+
+        return None
 
 # TODO Update entry annotation
 # 配置入口设置函数的功能
@@ -103,7 +139,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: EgreatPlayerConfigEntry)
     hass.data.setdefault(DOMAIN, {})
 
     # 创建播放器实例
-    player = EgreatPlayer(entry.data[CONF_PORT], entry.data[CONF_BAUDRATE])
+    player = EgreatPlayer(entry.data[CONF_PORT], entry.data[CONF_BAUDRATE], host = entry.data.get(CONF_HOST))
+    if player._host:
+        player.mac_address = await hass.async_add_executor_job(player.get_mac_from_ip, player._host)
 
     # 测试连接
     connected = await hass.async_add_executor_job(player.connect)

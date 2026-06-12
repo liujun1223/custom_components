@@ -3,6 +3,7 @@
 DOMAIN = "egreat_player"
 CONF_PORT = "port"
 CONF_BAUDRATE = "baudrate"
+CONF_HOST = "host"
 
 # 支持USB转串口的芯片 VID
 # FTDI: 0x0403, Silicon Labs: 0x10C4, Prolific: 0x067B, CH340: 0x1A86

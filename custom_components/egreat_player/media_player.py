@@ -72,12 +72,12 @@ class EgreatMediaPlayer(MediaPlayerEntity):
     def device_info(self):
         return DeviceInfo(
             identifiers = {(DOMAIN, self._entry_id)},
-            connections = {(CONNECTION_NETWORK_MAC, self._device.mac_address)},
+            connections = {(CONNECTION_NETWORK_MAC, self._device.mac_address)} if self._device.mac_address else set(),
             name = "K5",
             manufacturer = "Egreat",
             model = "K5",
             sw_version = self._device.firmware_version,
-            configuration_url="http://www.egreatworld.com/"
+            configuration_url = "http://www.egreatworld.com/"
         )
 
     # 返回设备是否在线

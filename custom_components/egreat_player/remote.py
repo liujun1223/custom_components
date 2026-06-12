@@ -135,7 +135,7 @@ class EgreatRemote(RemoteEntity):
     def device_info(self):
         return DeviceInfo(
             identifiers = {(DOMAIN, self._entry_id)},
-            connections = {(CONNECTION_NETWORK_MAC, self._device.mac_address)},
+                        connections = {(CONNECTION_NETWORK_MAC, self._device.mac_address)} if self._device.mac_address else set(),
             name = "K5",
             manufacturer = "Egreat",
             model = "K5",
