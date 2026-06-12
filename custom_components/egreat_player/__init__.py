@@ -29,7 +29,7 @@ class EgreatPlayer:
     def __init__(self, port: str, baudrate: int, host: str | None = None) -> None:
         self._port = port
         self._baudrate = baudrate
-        self.host = host
+        self._host = host
         # 初始化MAC地址
         self.mac_address: str | None = None
         # 串口连接对象
@@ -38,9 +38,9 @@ class EgreatPlayer:
         self.available = False
 
         # 如果初始化时有host，则尝试获取MAC
-        if self.host:
+        if self._host:
             try:
-                self.mac_address = self.get_mac_from_ip(self.host)
+                self.mac_address = self.get_mac_from_ip(self._host)
             except Exception as e:
                 self.mac_address = None
 
