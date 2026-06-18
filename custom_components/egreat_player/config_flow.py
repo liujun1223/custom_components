@@ -56,7 +56,7 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
 
         # 没有发现串口
         if not ports:
-            _LOGGER.warning("No Serial Ports Found")
+            _LOGGER.debug("No Serial Ports Found")
             return await self.async_step_manual()
 
         test_ports = [
@@ -93,7 +93,7 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
                 }
             )
 
-        _LOGGER.warning("Auto detection failed")
+        _LOGGER.debug("Auto detection failed")
 
         # 自动扫描失败，进入手动模式
         return await self.async_step_manual()
@@ -123,16 +123,16 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
                 await self.async_set_unique_id(port)
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
-                    title = "Egreat Player",
+                    title = "K5",
                     data = user_input
                 )
 
         return self.async_show_form(
             step_id = "manual",
             data_schema = vol.Schema({
-                vol.Required(CONF_PORT): vol.In(port_options),
-                vol.Required(CONF_BAUDRATE, default = DEFAULT_BAUDRATE): vol.In([2400, 4800, 9600, 19200, 38400, 57600, 115200]),
-                vol.Optional(CONF_HOST, description = {"suggested_value": ""}): str
+                vol.Required(CONF_PORT, default = user_input.get(CONF_PORT, "")): vol.In(port_options),
+                vol.Required(CONF_BAUDRATE, default = user_input.get(CONF_BAUDRATE, DEFAULT_BAUDRATE)): vol.In([2400, 4800, 9600, 19200, 38400, 57600, 115200]),
+                vol.Optional(CONF_HOST, default = user_input.get(CONF_HOST, "")): str
             }),
             errors = errors
         )
@@ -141,7 +141,7 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
         # 检测是否是串口设备
         # 排除蓝牙，调制解调器等
 
-        _LOGGER.warning(
+        _LOGGER.debug(
             "Port=%s VID=%s PID=%s DESC=%s",
             port.device,
             hex(port.vid) if port.vid else None,

@@ -157,17 +157,21 @@ class EgreatRemote(RemoteEntity):
         for cmd in command:
             serial_cmd = COMMAND_MAP.get(cmd.lower())
             if serial_cmd is None:
-                _LOGGER.warning("Unknown command: %s", cmd)
+                _LOGGER.debug("Unknown command: %s", cmd)
                 continue
 
             success = await self._send_command(serial_cmd)
             if not success:
-                _LOGGER.warning("Failed to send command: %s", cmd)
+                _LOGGER.debug("Failed to send command: %s", cmd)
             else:
                 _LOGGER.debug("Command sent: %s", cmd)
 
     async def async_turn_on(self, activity: str | None = None, **kwargs) -> None:
-        await self._send_command(CMD_POWER_ON)
+        if await self._send_command(CMD_POWER_ON):
+            self._attr_is_on = True
+            self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs) -> None:
-        await self._send_command(CMD_POWER_OFF)
+        if await self._send_command(CMD_POWER_OFF):
+            self._attr_is_on = False
+            self.async_write_ha_state()

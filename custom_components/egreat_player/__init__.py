@@ -37,19 +37,22 @@ class EgreatPlayer:
         # 设备在线状态
         self.available = False
 
-        # 如果初始化时有host，则尝试获取MAC
-        if self._host:
-            try:
-                self.mac_address = self.get_mac_from_ip(self._host)
-            except Exception as e:
-                self.mac_address = None
-
     # 连接串口设备
     def connect(self) -> bool:
         try:
             # 已连接时直接返回
             if self._serial_connection and self._serial_connection.is_open:
-                return True
+                try:
+                    # 读取串口属性
+                    self._serial_connection.in_waiting
+                    return True
+                except Exception as e:
+                    # 串口已死，强制关闭重建
+                    try:
+                        self._serial_connection.close()
+                    except Exception as err:
+                        _LOGGER.debug("Failed to close serial connection: %s", err)
+                    self._serial_connection = None
 
             # 创建串口连接
             self._serial_connection = serial.Serial(self._port, self._baudrate, timeout = 1)
@@ -76,23 +79,24 @@ class EgreatPlayer:
             self._serial_connection.flush()
             _LOGGER.debug("Send command: %s", command.hex())
 
-            # 读取设备反馈码，直到D0
-            response = self._serial_connection.read_until(b"\xD0")
+            # 读取设备反馈码，直到D0,设置size上限20
+            response = self._serial_connection.read_until(b"\xD0", size = 20)
             _LOGGER.debug("Response: %s", response.hex())
 
             # 没收到反馈
             if not response:
-                _LOGGER.warning("No response received")
+                _LOGGER.debug("No response received")
                 return False
 
             # 验证协议头
             if response[0] != RESPONSE_HEADER:
-                _LOGGER.warning("Invalid response header: %s", response.hex())
+                _LOGGER.debug("Invalid response header: %s", response.hex())
                 return False
 
             return True
         except Exception as e:
             self.available = False
+            self._serial_connection = None
             _LOGGER.error("Error send command: %s", e)
             return False
 
@@ -123,7 +127,7 @@ class EgreatPlayer:
             if match:
                 return match.group(0)
         except Exception as e:
-            _LOGGER.warning("Failed to get MAC for IP %s: %s", ip, e)
+            _LOGGER.debug("Failed to get MAC for IP %s: %s", ip, e)
 
         return None
 

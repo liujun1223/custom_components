@@ -20,6 +20,8 @@ from .const import (
 )
 from . import EgreatPlayer, EgreatPlayerConfigEntry
 from homeassistant.helpers.device_registry import DeviceInfo, CONNECTION_NETWORK_MAC
+from homeassistant.helpers.event import async_track_time_interval
+from datetime import timedelta
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -66,6 +68,20 @@ class EgreatMediaPlayer(MediaPlayerEntity):
         self._attr_state = MediaPlayerState.IDLE
         # 默认静音状态
         self._attr_is_volume_muted = False
+
+    # 定时检查设备是否在线，并将状态变化通知HA更新前端显示
+    async def async_added_to_hass(self) -> None:
+        async_track_time_interval(
+            self.hass,
+            self._async_check_availability,
+            timedelta(seconds = 10)
+        )
+
+    async def _async_check_availability(self, _now = None) -> None:
+        was_available = self._device.available
+        is_available = await self.hass.async_add_executor_job(self._device.connect)
+        if was_available != is_available:
+            self.async_write_ha_state()
 
     # 设备信息
     @property

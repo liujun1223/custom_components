@@ -11,6 +11,7 @@ from . import EgreatPlayer, EgreatPlayerConfigEntry
 from homeassistant.helpers.device_registry import DeviceInfo, CONNECTION_NETWORK_MAC
 
 _LOGGER = logging.getLogger(__name__)
+PLACEHOLDER = "-选择命令-"
 
 async def async_setup_entry(hass: HomeAssistant, entry: EgreatPlayerConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """创建select实体"""
@@ -35,7 +36,8 @@ class EgreatCommandSelect(SelectEntity):
         self._attr_name = "Command"
         self._attr_has_entity_name = True
         self._attr_unique_id = (f"{entry_id}_command")
-        self._attr_options = list(COMMAND_MAP.keys())
+        self._attr_options = [PLACEHOLDER] + list(COMMAND_MAP.keys())
+        self._attr_current_option = PLACEHOLDER
 
     @property
     def available(self) -> bool:
@@ -67,20 +69,23 @@ class EgreatCommandSelect(SelectEntity):
         选择后立即发送串口命令。
         """
 
+        if option == PLACEHOLDER:
+            return
         # 获取对应协议
         command = COMMAND_MAP.get(option)
         if command is None:
-            _LOGGER.warning("Unknown command: %s", option)
+            _LOGGER.debug("Unknown command: %s", option)
             return
         _LOGGER.debug("Send command: %s", option)
 
         # 调用init文件里面的统一发送函数
         success = await self.hass.async_add_executor_job(self._device.send_command, command)
         if success:
+            self._attr_current_option = PLACEHOLDER
             self.async_write_ha_state()
             _LOGGER.debug("Command executed: %s", option)
         else:
-            _LOGGER.warning("Command failed: %s", option)
+            _LOGGER.debug("Command failed: %s", option)
 
     @property
     def icon(self) -> str:
