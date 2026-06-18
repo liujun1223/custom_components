@@ -127,12 +127,15 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
                     data = user_input
                 )
 
+        # user_input为None时用空默认值，有值时进行回填
+        previous = user_input or {}
+
         return self.async_show_form(
             step_id = "manual",
             data_schema = vol.Schema({
-                vol.Required(CONF_PORT, default = user_input.get(CONF_PORT, "")): vol.In(port_options),
-                vol.Required(CONF_BAUDRATE, default = user_input.get(CONF_BAUDRATE, DEFAULT_BAUDRATE)): vol.In([2400, 4800, 9600, 19200, 38400, 57600, 115200]),
-                vol.Optional(CONF_HOST, default = user_input.get(CONF_HOST, "")): str
+                vol.Required(CONF_PORT, default = previous.get(CONF_PORT, "")): vol.In(port_options),
+                vol.Required(CONF_BAUDRATE, default = previous.get(CONF_BAUDRATE, DEFAULT_BAUDRATE)): vol.In([2400, 4800, 9600, 19200, 38400, 57600, 115200]),
+                vol.Optional(CONF_HOST, default = previous.get(CONF_HOST, "")): str
             }),
             errors = errors
         )
