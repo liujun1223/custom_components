@@ -142,8 +142,10 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
         """测试TCP 26047端口是否可连接并返回设备信息"""
         try:
             with socket.create_connection((host, 26047), timeout = 3) as sock:
+                _LOGGER.info("已经连接上了！")
                 request = json.dumps({"cmd": "getDeviceInfo"}) + "\n"
                 sock.sendall(request.encode("utf-8"))
+                _LOGGER.info("已经发送出去了！")
                 response = b""
                 while True:
                     chunk = sock.recv(1024)
@@ -152,7 +154,9 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
                     response += chunk
                     if b"}" in response:
                         break
+            _LOGGER.info("有返回值！")
             data = json.loads(response.decode("utf-8").strip())
+            _LOGGER.info(data.get("status") == "success")
             return data.get("status") == "success"
         except Exception as e:
             _LOGGER.debug("TCP test failed for %s: %s", host, e)
