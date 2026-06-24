@@ -51,10 +51,10 @@ class EgreatCommandSelect(SelectEntity):
         return DeviceInfo(
             identifiers = {(DOMAIN, self._entry_id)},
                         connections = {(CONNECTION_NETWORK_MAC, self._device.mac_address)} if self._device.mac_address else set(),
-            name = "K5",
+            name = self._device.model,
             manufacturer = "Egreat",
-            model = "K5",
-            sw_version = "v3.2.2.3",
+            model = self._device.model,
+            sw_version = self._device.sw_version,
             configuration_url="http://www.egreatworld.com/"
         )
 

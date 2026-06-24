@@ -5,6 +5,8 @@ import voluptuous as vol
 import serial
 import serial.tools.list_ports
 import time
+import json
+import socket
 
 from typing import Any
 from homeassistant import config_entries
@@ -27,6 +29,10 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
     # 初始化亿格瑞播放器配置流程
 
     VERSION = 1
+
+    def __init__(self) -> None:
+        """初始化配置流程"""
+        self._detected_port = None
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle the initial step."""
@@ -80,23 +86,77 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
                 continue
             _LOGGER.info("Found Egreat Player on port: %s", port)
 
-            # 防止重复添加
-            await self.async_set_unique_id(port)
-            self._abort_if_unique_id_configured()
-
-            return self.async_create_entry(
-                title = "K5",
-                data = {
-                    CONF_PORT: port,
-                    CONF_BAUDRATE: DEFAULT_BAUDRATE,
-                    CONF_HOST: ""
-                }
-            )
+            # 保存端口，进入填写IP步骤
+            self._detected_port = port
+            return await self.async_step_host()
 
         _LOGGER.debug("Auto detection failed")
 
         # 自动扫描失败，进入手动模式
         return await self.async_step_manual()
+
+    async def async_step_host(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """自动识别串口成功后,让用户填写设备IP以获取设备信息"""
+        errors = {}
+
+        if user_input is not None:
+            host = user_input.get(CONF_HOST, "").strip()
+            # 如果填写了IP，验证能否连接到26047端口
+            if host:
+                valid = await self.hass.async_add_executor_job(self._test_tcp, host)
+                if not valid:
+                    errors["base"] = "cannot_connect_tcp"
+                else:
+                    await self.async_set_unique_id(self._detected_port)
+                    self._abort_if_unique_id_configured()
+                    return self.async_create_entry(
+                        title = "k5",
+                        data = {
+                            CONF_PORT: self._detected_port,
+                            CONF_BAUDRATE: DEFAULT_BAUDRATE,
+                            CONF_HOST: host
+                        }
+                    )
+            else:
+                # 没有填写IP，直接完成
+                await self.async_set_unique_id(self._detected_port)
+                self._abort_if_unique_id_configured()
+                return self.async_create_entry(
+                    title = "k5",
+                    data = {
+                        CONF_PORT: self._detected_port,
+                        CONF_BAUDRATE: DEFAULT_BAUDRATE,
+                        CONF_HOST: ""
+                    }
+                )
+
+        return self.async_show_form(
+            step_id = "host",
+            data_schema = vol.Schema({
+                vol.Optional(CONF_HOST, description = {"suggested_value": ""}):str
+            }),
+            errors = errors
+        )
+
+    def _test_tcp(self, host: str) -> bool:
+        """测试TCP 26047端口是否可连接并返回设备信息"""
+        try:
+            with socket.create_connection((host, 26047), timeout = 3) as sock:
+                request = json.dumps({"cmd": "getDeviceInfo"}) + "\n"
+                sock.sendall(request.encode("utf-8"))
+                response = b""
+                while True:
+                    chunk = sock.recv(1024)
+                    if not chunk:
+                        break
+                    response += chunk
+                    if b"}" in response:
+                        break
+            data = json.loads(response.decode("utf-8").strip())
+            return data.get("status") == "success"
+        except Exception as e:
+            _LOGGER.debug("TCP test failed for %s: %s", host, e)
+            return False
 
     async def async_step_manual(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         # 手动选择

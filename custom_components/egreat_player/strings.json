@@ -2,16 +2,31 @@
   "config": {
     "step": {
       "user": {
+        "title": "选择配置方式",
         "data": {
-          "host": "[%key:common::config_flow::data::host%]",
-          "username": "[%key:common::config_flow::data::username%]",
-          "password": "[%key:common::config_flow::data::password%]"
+          "auto_detect": "自动识别串口"
+        }
+      },
+      "host": {
+        "title": "填写设备IP(可选)",
+        "description": "填写播放器的IP地址,用于获取设备型号、软件版本和MAC地址。不填写则跳过。",
+        "data": {
+          "host": "IP地址"
+        }
+      },
+      "manual": {
+        "title": "手动配置",
+        "data": {
+          "port": "串口",
+          "baudrate": "波特率",
+          "host": "IP地址(可选)"
         }
       }
     },
     "error": {
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
-      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+      "cannot_connect_tcp": "无法连接到设备的TCP 26047端口,请检查IP地址和网络连接",
+      "no_device_found": "未找到亿格瑞播放器,请检查串口连接",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "abort": {

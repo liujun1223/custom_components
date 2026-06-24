@@ -30,7 +30,6 @@ COMMAND_MAP: dict[str, bytes] = {
     "left": CMD_LEFT,
     "right": CMD_RIGHT,
     "ok": CMD_OK,
-    "enter": CMD_OK,
 
     # 系统
     "home": CMD_HOME,
@@ -136,10 +135,10 @@ class EgreatRemote(RemoteEntity):
         return DeviceInfo(
             identifiers = {(DOMAIN, self._entry_id)},
                         connections = {(CONNECTION_NETWORK_MAC, self._device.mac_address)} if self._device.mac_address else set(),
-            name = "K5",
+            name = self._device.model,
             manufacturer = "Egreat",
-            model = "K5",
-            sw_version = "v3.2.2.3",
+            model = self._device.model,
+            sw_version = self._device.sw_version,
             configuration_url="http://www.egreatworld.com/"
         )
 

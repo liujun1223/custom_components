@@ -4,11 +4,19 @@ import logging
 import serial
 import subprocess
 import re
+import socket
+import json
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from .const import DOMAIN, CONF_PORT, CONF_BAUDRATE, RESPONSE_HEADER, CONF_HOST
+from .const import (
+    DOMAIN,
+    CONF_PORT,
+    CONF_BAUDRATE,
+    RESPONSE_HEADER,
+    CONF_HOST
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,6 +40,10 @@ class EgreatPlayer:
         self._host = host
         # 初始化MAC地址
         self.mac_address: str | None = None
+        # 设备型号
+        self.model: str | None = None
+        # 软件版本
+        self.sw_version: str | None = None
         # 串口连接对象
         self._serial_connection = None
         # 设备在线状态
@@ -106,7 +118,30 @@ class EgreatPlayer:
             self._serial_connection.close()
             _LOGGER.info("Closed connection to %s", self._port)
 
-    # 获取MAC地址
+    # 通过TCP 26047端口查询设备信息(型号，版本，MAC等)
+    def get_device_info(self, ip: str) -> dict | None:
+        try:
+            with socket.create_connection((ip, 26047), timeout = 3) as sock:
+                request = json.dumps({"cmd": "getDeviceInfo"}) + "\n"
+                sock.sendall(request.encode("utf-8"))
+                response = b""
+                while True:
+                    chunk = sock.recv(1024)
+                    if not chunk:
+                        break
+                    response += chunk
+                    # 收到完整的json后退出
+                    if b"}" in response:
+                        break
+            data = json.loads(response.decode("utf-8").strip())
+            if data.get("status") == "success":
+                _LOGGER.debug("Device info: %s", data)
+                return data
+        except Exception as e:
+            _LOGGER.debug("Failed to get device info from %s: %s", ip, e)
+            return None
+
+    # 通过arp获取MAC地址(备用，当TCP查询没有返回MAC时使用)
     def get_mac_from_ip(self, ip: str) -> str | None:
         try:
             subprocess.run(
@@ -144,8 +179,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: EgreatPlayerConfigEntry)
 
     # 创建播放器实例
     player = EgreatPlayer(entry.data[CONF_PORT], entry.data[CONF_BAUDRATE], host = entry.data.get(CONF_HOST))
+    # 通过TCP查询设备信息(MAC，型号，版本)
     if player._host:
-        player.mac_address = await hass.async_add_executor_job(player.get_mac_from_ip, player._host)
+        device_info = await hass.async_add_executor_job(player.get_device_info, player._host)
+        if device_info:
+            player.mac_address = device_info.get("mac")
+            player.model = device_info.get("model")
+            player.sw_version = device_info.get("version")
+            _LOGGER.info("Device info: model = %s, version = %s, mac = %s", player.model, player.sw_version, player.mac_address)
+        else:
+            # TCP查询失败，降级用ARP获取MAC
+            _LOGGER.debug("TCP query failed, faling back to ARP")
+            player.mac_address = await hass.async_add_executor_job(player.get_mac_from_ip, player._host)
 
     # 测试连接
     connected = await hass.async_add_executor_job(player.connect)
