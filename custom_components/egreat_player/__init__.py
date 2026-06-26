@@ -63,7 +63,7 @@ class EgreatPlayer:
                     try:
                         self._serial_connection.close()
                     except Exception as err:
-                        _LOGGER.debug("Failed to close serial connection: %s", err)
+                        _LOGGER.exception("Failed to close serial connection: %s", err)
                     self._serial_connection = None
 
             # 创建串口连接
@@ -138,7 +138,7 @@ class EgreatPlayer:
                 _LOGGER.debug("Device info: %s", data)
                 return data
         except Exception as e:
-            _LOGGER.debug("Failed to get device info from %s: %s", ip, e)
+            _LOGGER.exception("Failed to get device info from %s: %s", ip, e)
             return None
 
     # 通过arp获取MAC地址(备用，当TCP查询没有返回MAC时使用)
@@ -162,7 +162,7 @@ class EgreatPlayer:
             if match:
                 return match.group(0)
         except Exception as e:
-            _LOGGER.debug("Failed to get MAC for IP %s: %s", ip, e)
+            _LOGGER.exception("Failed to get MAC for IP %s: %s", ip, e)
 
         return None
 

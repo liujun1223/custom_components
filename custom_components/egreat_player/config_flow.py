@@ -81,7 +81,7 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
             try:
                 valid = await self._test_port(port)
             except Exception as e:
-                _LOGGER.debug("Failed testing %s: %s", port, e)
+                _LOGGER.exception("Failed testing %s: %s", port, e)
                 continue
             if not valid:
                 continue
@@ -157,12 +157,12 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
                     response += chunk
                     if b"}" in response:
                         break
-            _LOGGER.warning("有返回值！")
+            _LOGGER.warning("response bytes = %r", response)
             data = json.loads(response.decode("utf-8").strip())
             _LOGGER.warning(data.get("status") == "success")
             return data.get("status") == "success"
         except Exception as e:
-            _LOGGER.debug("TCP test failed for %s: %s", host, e)
+            _LOGGER.exception("TCP test failed for %s: %s", host, e)
             return False
 
     async def async_step_manual(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -251,7 +251,7 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
             )
             return result
         except Exception as e:
-            _LOGGER.debug("Error testing %s: %s", port, e)
+            _LOGGER.exception("Error testing %s: %s", port, e)
             return False
 
     def _sync_test_port(self, port: str) -> bool:
@@ -275,5 +275,5 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
                     return False
                 return response[0] == RESPONSE_HEADER
         except Exception as e:
-            _LOGGER.debug("Failed to test %s: %s", port, e)
+            _LOGGER.exception("Failed to test %s: %s", port, e)
             return False
