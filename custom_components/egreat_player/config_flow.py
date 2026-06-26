@@ -7,6 +7,7 @@ import serial.tools.list_ports
 import time
 import json
 import socket
+import struct
 
 from typing import Any
 from homeassistant import config_entries
@@ -139,12 +140,14 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
         )
 
     def _test_tcp(self, host: str) -> bool:
+        _LOGGER.info("进入tcp测试")
         """测试TCP 26047端口是否可连接并返回设备信息"""
         try:
             with socket.create_connection((host, 26047), timeout = 3) as sock:
                 _LOGGER.info("已经连接上了！")
-                request = json.dumps({"cmd": "getDeviceInfo"}) + "\n"
-                sock.sendall(request.encode("utf-8"))
+                body = json.dumps({"cmd": "getDeviceInfo"}).encode("utf-8")
+                header = struct.pack("!i", len(body))
+                sock.sendall(header + body)
                 _LOGGER.info("已经发送出去了！")
                 response = b""
                 while True:

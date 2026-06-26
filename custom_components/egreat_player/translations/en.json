@@ -5,16 +5,31 @@
         },
         "error": {
             "cannot_connect": "Failed to connect",
-            "invalid_auth": "Invalid authentication",
+            "cannot_connect_tcp": "\u65e0\u6cd5\u8fde\u63a5\u5230\u8bbe\u5907\u7684TCP 26047\u7aef\u53e3,\u8bf7\u68c0\u67e5IP\u5730\u5740\u548c\u7f51\u7edc\u8fde\u63a5",
+            "no_device_found": "\u672a\u627e\u5230\u4ebf\u683c\u745e\u64ad\u653e\u5668,\u8bf7\u68c0\u67e5\u4e32\u53e3\u8fde\u63a5",
             "unknown": "Unexpected error"
         },
         "step": {
+            "host": {
+                "data": {
+                    "host": "IP\u5730\u5740"
+                },
+                "description": "\u586b\u5199\u64ad\u653e\u5668\u7684IP\u5730\u5740,\u7528\u4e8e\u83b7\u53d6\u8bbe\u5907\u578b\u53f7\u3001\u8f6f\u4ef6\u7248\u672c\u548cMAC\u5730\u5740\u3002\u4e0d\u586b\u5199\u5219\u8df3\u8fc7\u3002",
+                "title": "\u586b\u5199\u8bbe\u5907IP(\u53ef\u9009)"
+            },
+            "manual": {
+                "data": {
+                    "baudrate": "\u6ce2\u7279\u7387",
+                    "host": "IP\u5730\u5740(\u53ef\u9009)",
+                    "port": "\u4e32\u53e3"
+                },
+                "title": "\u624b\u52a8\u914d\u7f6e"
+            },
             "user": {
                 "data": {
-                    "host": "Host",
-                    "password": "Password",
-                    "username": "Username"
-                }
+                    "auto_detect": "\u81ea\u52a8\u8bc6\u522b\u4e32\u53e3"
+                },
+                "title": "\u9009\u62e9\u914d\u7f6e\u65b9\u5f0f"
             }
         }
     }
