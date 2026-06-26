@@ -158,7 +158,13 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
                     if b"}" in response:
                         break
             _LOGGER.warning("response bytes = %r", response)
-            data = json.loads(response.decode("utf-8").strip())
+            if len(response) < 4:
+                _LOGGER.error("Response data process")
+            length = struct.unpack("!i", response[:4])[0]
+            playroad = response[4:]
+            _LOGGER.warning("length = %d", length)
+            _LOGGER.warning("playroad = %d", playroad)
+            data = json.loads(playroad.decode("utf-8"))
             _LOGGER.warning(data.get("status") == "success")
             return data.get("status") == "success"
         except Exception as e:
