@@ -168,7 +168,7 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
             _LOGGER.warning(data.get("status") == "success")
             return data.get("status") == "success"
         except Exception as e:
-            _LOGGER.exception("TCP test failed for %s: %s", host, e)
+            _LOGGER.exception("TCP test failed for %s", host)
             return False
 
     async def async_step_manual(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:

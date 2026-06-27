@@ -6,6 +6,7 @@ import subprocess
 import re
 import socket
 import json
+import struct
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -122,8 +123,9 @@ class EgreatPlayer:
     def get_device_info(self, ip: str) -> dict | None:
         try:
             with socket.create_connection((ip, 26047), timeout = 3) as sock:
-                request = json.dumps({"cmd": "getDeviceInfo"}) + "\n"
-                sock.sendall(request.encode("utf-8"))
+                body = json.dumps({"cmd": "getDeviceInfo"}).encode("utf-8")
+                header = struct.pack("!i", len(body))
+                sock.sendall(header + body)
                 response = b""
                 while True:
                     chunk = sock.recv(1024)
@@ -133,12 +135,18 @@ class EgreatPlayer:
                     # 收到完整的json后退出
                     if b"}" in response:
                         break
-            data = json.loads(response.decode("utf-8").strip())
+            if len(response) < 4:
+                _LOGGER.error("Response data process")
+            length = struct.unpack("!i", response[:4])[0]
+            playroad = response[4:]
+            _LOGGER.warning("Length = %d", length)
+            _LOGGER.warning("Playroad = %r", playroad)
+            data = json.loads(playroad.decode("utf-8"))
             if data.get("status") == "success":
                 _LOGGER.debug("Device info: %s", data)
                 return data
         except Exception as e:
-            _LOGGER.exception("Failed to get device info from %s: %s", ip, e)
+            _LOGGER.exception("Failed to get device info from %s", ip)
             return None
 
     # 通过arp获取MAC地址(备用，当TCP查询没有返回MAC时使用)
@@ -162,7 +170,7 @@ class EgreatPlayer:
             if match:
                 return match.group(0)
         except Exception as e:
-            _LOGGER.exception("Failed to get MAC for IP %s: %s", ip, e)
+            _LOGGER.exception("Failed to get MAC for IP %s", ip)
 
         return None
 
