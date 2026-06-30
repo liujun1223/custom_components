@@ -81,7 +81,7 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
             try:
                 valid = await self._test_port(port)
             except Exception as e:
-                _LOGGER.exception("Failed testing %s: %s", port, e)
+                _LOGGER.exception("Failed testing %s", port)
                 continue
             if not valid:
                 continue
@@ -257,7 +257,7 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
             )
             return result
         except Exception as e:
-            _LOGGER.exception("Error testing %s: %s", port, e)
+            _LOGGER.exception("Error testing %s", port)
             return False
 
     def _sync_test_port(self, port: str) -> bool:
@@ -281,5 +281,5 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain = DOMAIN):
                     return False
                 return response[0] == RESPONSE_HEADER
         except Exception as e:
-            _LOGGER.exception("Failed to test %s: %s", port, e)
+            _LOGGER.exception("Failed to test %s", port)
             return False

@@ -64,7 +64,7 @@ class EgreatPlayer:
                     try:
                         self._serial_connection.close()
                     except Exception as err:
-                        _LOGGER.exception("Failed to close serial connection: %s", err)
+                        _LOGGER.debug("Failed to close serial connection: %s", err)
                     self._serial_connection = None
 
             # 创建串口连接

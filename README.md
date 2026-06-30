@@ -13,7 +13,7 @@
 
 ### 通过 HACS 安装
 
-1. 添加自定义仓库：`https://github.com/liujun1223/custom_components`
+1. 添加自定义仓库：`https://github.com/liujun1223/custom_components.git`
 2. 搜索并安装 "Egreat Player"
 3. 重启 HA
 
