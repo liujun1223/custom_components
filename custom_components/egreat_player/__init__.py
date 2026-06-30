@@ -1,39 +1,32 @@
 """The Egreat Player integration."""
 
+import json
 import logging
-import serial
-import subprocess
 import re
 import socket
-import json
 import struct
+import subprocess
+
+import serial
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from .const import (
-    DOMAIN,
-    CONF_PORT,
-    CONF_BAUDRATE,
-    RESPONSE_HEADER,
-    CONF_HOST
-)
+
+from .const import CONF_BAUDRATE, CONF_HOST, CONF_PORT, DOMAIN, RESPONSE_HEADER
 
 _LOGGER = logging.getLogger(__name__)
 
-# TODO List the platforms that you want to support.
 # For your initial PR, limit it to 1 platform.
 # 声明集成支持的平台：MEDIA_PLAYER
 _PLATFORMS: list[Platform] = [Platform.MEDIA_PLAYER, Platform.REMOTE, Platform.SELECT]
 
-# TODO Create ConfigEntry type alias with API object
-# TODO Rename type alias and update all entry annotations
 # 配置入口类型别名
 type EgreatPlayerConfigEntry = ConfigEntry[EgreatPlayer]
 
 
 class EgreatPlayer:
-    """Egreat Player Api"""
+    """Egreat Player Api!"""
     # 初始化串口连接参数
     def __init__(self, port: str, baudrate: int, host: str | None = None) -> None:
         self._port = port
@@ -59,7 +52,7 @@ class EgreatPlayer:
                     # 读取串口属性
                     self._serial_connection.in_waiting
                     return True
-                except Exception as e:
+                except Exception:
                     # 串口已死，强制关闭重建
                     try:
                         self._serial_connection.close()
@@ -78,7 +71,7 @@ class EgreatPlayer:
             return False
 
     # 发送串口控制命令
-    def send_command(self, command:bytes) -> bool:
+    def send_command(self, command: bytes) -> bool:
         # 自动重连
         if not self.connect():
             return False
@@ -145,23 +138,16 @@ class EgreatPlayer:
             if data.get("status") == "success":
                 _LOGGER.debug("Device info: %s", data)
                 return data
-        except Exception as e:
+        except Exception:
             _LOGGER.exception("Failed to get device info from %s", ip)
             return None
 
     # 通过arp获取MAC地址(备用，当TCP查询没有返回MAC时使用)
     def get_mac_from_ip(self, ip: str) -> str | None:
         try:
-            subprocess.run(
-                ["ping", "-c", "1", ip],
-                capture_output = True,
-                timeout = 1
-            )
+            subprocess.run(["ping", "-c", "1", ip], capture_output=True, timeout=1)
             result = subprocess.run(
-                ["arp", "-n", ip],
-                capture_output = True,
-                text = True,
-                timeout = 1
+                ["arp", "-n", ip], capture_output=True, text=True, timeout=1
             )
             match = re.search(
                 r"([0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}",
@@ -169,27 +155,28 @@ class EgreatPlayer:
             )
             if match:
                 return match.group(0)
-        except Exception as e:
+        except Exception:
             _LOGGER.exception("Failed to get MAC for IP %s", ip)
 
         return None
 
-# TODO Update entry annotation
+
 # 配置入口设置函数的功能
-async def async_setup_entry(hass: HomeAssistant, entry: EgreatPlayerConfigEntry) -> bool:
+async def async_setup_entry(
+    hass: HomeAssistant, entry: EgreatPlayerConfigEntry
+) -> bool:
     """Set up Egreat Player from a config entry."""
 
-    # TODO 1. Create API instance
-    # TODO 2. Validate the API connection (and authentication)
-    # TODO 3. Store an API object for your platforms to access
-    # entry.runtime_data = MyAPI(...)
     hass.data.setdefault(DOMAIN, {})
 
     # 创建播放器实例
     player = EgreatPlayer(entry.data[CONF_PORT], entry.data[CONF_BAUDRATE], host = entry.data.get(CONF_HOST))
     # 通过TCP查询设备信息(MAC，型号，版本)
     if player._host:
-        device_info = await hass.async_add_executor_job(player.get_device_info, player._host)
+        device_info = await hass.async_add_executor_job(
+            player.get_device_info,
+            player._host,
+        )
         if device_info:
             player.mac_address = device_info.get("mac")
             player.model = device_info.get("model")
@@ -198,7 +185,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: EgreatPlayerConfigEntry)
         else:
             # TCP查询失败，降级用ARP获取MAC
             _LOGGER.debug("TCP query failed, faling back to ARP")
-            player.mac_address = await hass.async_add_executor_job(player.get_mac_from_ip, player._host)
+            player.mac_address = await hass.async_add_executor_job(
+                player.get_mac_from_ip,
+                player._host,
+            )
 
     # 测试连接
     connected = await hass.async_add_executor_job(player.connect)
@@ -213,8 +203,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: EgreatPlayerConfigEntry)
 
     return True
 
-
-# TODO Update entry annotation
 # 配置卸载函数的功能
 async def async_unload_entry(hass: HomeAssistant, entry: EgreatPlayerConfigEntry) -> bool:
     """Unload a config entry."""

@@ -1,46 +1,58 @@
-"""Media Player platform for Egreat Player"""
+"""Media Player platform for Egreat Player!"""
 
+from datetime import timedelta
 import logging
 
-from homeassistant.components.media_player import (MediaPlayerEntity, MediaPlayerEntityFeature, MediaPlayerState)
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from .const import (
-    DOMAIN,
-    CMD_POWER_ON,
-    CMD_POWER_OFF,
-    CMD_VOLUME_UP,
-    CMD_VOLUME_DOWN,
-    CMD_MUTE,
-    CMD_PLAY,
-    CMD_PAUSE,
-    CMD_STOP,
-    CMD_PREVIOUS,
-    CMD_NEXT,
+from homeassistant.components.media_player import (
+    MediaPlayerEntity,
+    MediaPlayerEntityFeature,
+    MediaPlayerState,
 )
-from . import EgreatPlayer, EgreatPlayerConfigEntry
-from homeassistant.helpers.device_registry import DeviceInfo, CONNECTION_NETWORK_MAC
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_interval
-from datetime import timedelta
+
+from . import EgreatPlayer, EgreatPlayerConfigEntry
+from .const import (
+    CMD_MUTE,
+    CMD_NEXT,
+    CMD_PAUSE,
+    CMD_PLAY,
+    CMD_POWER_OFF,
+    CMD_POWER_ON,
+    CMD_PREVIOUS,
+    CMD_STOP,
+    CMD_VOLUME_DOWN,
+    CMD_VOLUME_UP,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
-async def async_setup_entry(hass: HomeAssistant, entry: EgreatPlayerConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: EgreatPlayerConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
     """Set up the Egreat media player platform."""
     # 初始化播放器实体
 
     device = entry.runtime_data
     async_add_entities([EgreatMediaPlayer(entry.entry_id, device)])
 
+
 class EgreatMediaPlayer(MediaPlayerEntity):
-    """Representation of an Egreat Player"""
+    """Representation of an Egreat Player!"""
+
     # 播放器实体
 
     # 不主动轮询
     _attr_should_poll = False
 
     def __init__(self, entry_id: str, device: EgreatPlayer) -> None:
-        """Initialize the media player"""
+        """Initialize the media player!"""
         # 初始化播放器
 
         self._device = device
@@ -53,15 +65,15 @@ class EgreatMediaPlayer(MediaPlayerEntity):
 
         # 定义支持的功能
         self._attr_supported_features = (
-            MediaPlayerEntityFeature.TURN_ON |
-            MediaPlayerEntityFeature.TURN_OFF |
-            MediaPlayerEntityFeature.PLAY |
-            MediaPlayerEntityFeature.PAUSE |
-            MediaPlayerEntityFeature.STOP |
-            MediaPlayerEntityFeature.PREVIOUS_TRACK |
-            MediaPlayerEntityFeature.NEXT_TRACK |
-            MediaPlayerEntityFeature.VOLUME_STEP |
-            MediaPlayerEntityFeature.VOLUME_MUTE
+            MediaPlayerEntityFeature.TURN_ON
+            | MediaPlayerEntityFeature.TURN_OFF
+            | MediaPlayerEntityFeature.PLAY
+            | MediaPlayerEntityFeature.PAUSE
+            | MediaPlayerEntityFeature.STOP
+            | MediaPlayerEntityFeature.PREVIOUS_TRACK
+            | MediaPlayerEntityFeature.NEXT_TRACK
+            | MediaPlayerEntityFeature.VOLUME_STEP
+            | MediaPlayerEntityFeature.VOLUME_MUTE
         )
 
         # 默认状态
@@ -72,12 +84,10 @@ class EgreatMediaPlayer(MediaPlayerEntity):
     # 定时检查设备是否在线，并将状态变化通知HA更新前端显示
     async def async_added_to_hass(self) -> None:
         async_track_time_interval(
-            self.hass,
-            self._async_check_availability,
-            timedelta(seconds = 10)
+            self.hass, self._async_check_availability, timedelta(seconds=10)
         )
 
-    async def _async_check_availability(self, _now = None) -> None:
+    async def _async_check_availability(self, _now=None) -> None:
         was_available = self._device.available
         is_available = await self.hass.async_add_executor_job(self._device.connect)
         if was_available != is_available:
@@ -87,13 +97,15 @@ class EgreatMediaPlayer(MediaPlayerEntity):
     @property
     def device_info(self):
         return DeviceInfo(
-            identifiers = {(DOMAIN, self._entry_id)},
-            connections = {(CONNECTION_NETWORK_MAC, self._device.mac_address)} if self._device.mac_address else set(),
-            name = self._device.model,
-            manufacturer = "Egreat",
-            model = self._device.model,
-            sw_version = self._device.sw_version,
-            configuration_url = "http://www.egreatworld.com/"
+            identifiers={(DOMAIN, self._entry_id)},
+            connections={(CONNECTION_NETWORK_MAC, self._device.mac_address)}
+            if self._device.mac_address
+            else set(),
+            name=self._device.model,
+            manufacturer="Egreat",
+            model=self._device.model,
+            sw_version=self._device.sw_version,
+            configuration_url="http://www.egreatworld.com/",
         )
 
     # 返回设备是否在线
@@ -102,8 +114,7 @@ class EgreatMediaPlayer(MediaPlayerEntity):
         return self._device.available
 
     async def _send_command(self, command: bytes) -> bool:
-        """
-        统一发送串口命令。
+        """统一发送串口命令。
         这里的作用：
         1. 把阻塞 IO 放进 executor
         2. 避免重复代码
@@ -111,58 +122,60 @@ class EgreatMediaPlayer(MediaPlayerEntity):
            - retry
            - timeout
            - command queue
-           - logging
-        """
-        return await self.hass.async_add_executor_job(self._device.send_command, command)
+           - logging.
+        """  # noqa: D205
+        return await self.hass.async_add_executor_job(
+            self._device.send_command, command
+        )
 
     async def async_turn_on(self) -> None:
-        """Turn on the player"""
+        """Turn on the player!"""
         if await self._send_command(CMD_POWER_ON):
             self._attr_state = MediaPlayerState.ON
             self.async_write_ha_state()
 
     async def async_turn_off(self) -> None:
-        """Turn off the player"""
+        """Turn off the player!"""
         if await self._send_command(CMD_POWER_OFF):
             self._attr_state = MediaPlayerState.OFF
             self.async_write_ha_state()
 
     async def async_media_play(self) -> None:
-        """send play command"""
+        """Send play command!"""
         if await self._send_command(CMD_PLAY):
             self._attr_state = MediaPlayerState.PLAYING
             self.async_write_ha_state()
 
     async def async_media_pause(self) -> None:
-        """send pause command"""
+        """Send pause command!"""
         if await self._send_command(CMD_PAUSE):
             self._attr_state = MediaPlayerState.PAUSED
             self.async_write_ha_state()
 
     async def async_media_stop(self) -> None:
-        """send stop command"""
+        """Send stop command!"""
         if await self._send_command(CMD_STOP):
             self._attr_state = MediaPlayerState.IDLE
             self.async_write_ha_state()
 
     async def async_media_previous_track(self) -> None:
-        """send previous track command"""
+        """Send previous track command!"""
         await self._send_command(CMD_PREVIOUS)
 
     async def async_media_next_track(self) -> None:
-        """send next track command"""
+        """Send next track command!"""
         await self._send_command(CMD_NEXT)
 
     async def async_volume_up(self) -> None:
-        """send volume up command"""
+        """Send volume up command!"""
         await self._send_command(CMD_VOLUME_UP)
 
     async def async_volume_down(self) -> None:
-        """send volume down command"""
+        """Send volume down command!"""
         await self._send_command(CMD_VOLUME_DOWN)
 
     async def async_mute_volume(self, mute: bool) -> None:
-        """send mute command"""
+        """Send mute command!"""
         if await self._send_command(CMD_MUTE):
             self._attr_is_volume_muted = mute
             self.async_write_ha_state()
