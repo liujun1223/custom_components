@@ -98,3 +98,28 @@ CMD_6 = bytes([0x21, 0x01, 0x08, 0x02, 0x19, 0x06, 0x0D])
 CMD_7 = bytes([0x21, 0x01, 0x08, 0x02, 0x19, 0x07, 0x0D])
 CMD_8 = bytes([0x21, 0x01, 0x08, 0x02, 0x19, 0x08, 0x0D])
 CMD_9 = bytes([0x21, 0x01, 0x08, 0x02, 0x19, 0x09, 0x0D])
+
+# 亿格瑞播放器IP控制指令合集(TCP端口: 33080, 格式: CMD,keycode_xxx,END)
+IP_CMD_MAP = {
+    # 电源
+    "power_on": "CMD,keycode_on,END",
+    "power_off": "CMD,keycode_off,END",
+    # 导航
+    "up": "CMD,keycode_dpad_up,END",
+    "down": "CMD,keycode_dpad_down,END",
+    "left": "CMD,keycode_dpad_left,END",
+    "right": "CMD,keycode_dpad_right,END",
+    "enter": "CMD,keycode_dpad_center,END",
+    # 系统
+    "home": "CMD,keycode_home,END",
+    "menu": "CMD,keycode_menu,END",
+    "back": "CMD,keycode_back,END",
+    # 播放控制
+    "play": "CMD,keycode_media_play,END",
+    "pause": "CMD,keycode_media_pause,END",
+    "stop": "CMD,keycode_media_stop,END",
+    # 快进快退
+    "fwd": "CMD,keycode_scan_fwd,END",
+    "rev": "CMD,keycode_scan_rev,END",
+    # 上一章下一章
+}

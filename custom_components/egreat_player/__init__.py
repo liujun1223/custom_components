@@ -45,27 +45,31 @@ class EgreatPlayer:
 
     # 连接串口设备
     def connect(self) -> bool:
-        try:
-            # 已连接时直接返回
-            if self._serial_connection and self._serial_connection.is_open:
+        # 已连接时探活
+        if self._serial_connection and self._serial_connection.is_open:
+            try:
+                self._serial_connection.in_waiting
+                return True  # 串口健康，直接返回
+            except Exception as err:
+                _LOGGER.debug("Serial connection dead: %s", err)
+                # 串口已死，强制关闭
                 try:
-                    # 读取串口属性
-                    self._serial_connection.in_waiting
-                    return True
-                except Exception:
-                    # 串口已死，强制关闭重建
-                    try:
-                        self._serial_connection.close()
-                    except Exception as err:
-                        _LOGGER.debug("Failed to close serial connection: %s", err)
-                    self._serial_connection = None
+                    self._serial_connection.close()
+                except Exception as close_err:
+                    _LOGGER.debug("Failed to close dead connection: %s", close_err)
+                self._serial_connection = None
+                self.available = False
 
-            # 创建串口连接
-            self._serial_connection = serial.Serial(self._port, self._baudrate, timeout = 1)
+        # 重新建立连接
+        try:
+            self._serial_connection = serial.Serial(
+                self._port, self._baudrate, timeout=1
+            )
             self.available = True
-            _LOGGER.info("Connnected to egreat player on %s", self._port)
+            _LOGGER.info("Connected to egreat player on %s", self._port)
             return True
-        except Exception as e:
+        except serial.SerialException as e:
+            self._serial_connection = None  # 确保失败时置None
             self.available = False
             _LOGGER.error("Failed to connect to %s: %s", self._port, e)
             return False
@@ -74,6 +78,11 @@ class EgreatPlayer:
     def send_command(self, command: bytes) -> bool:
         # 自动重连
         if not self.connect():
+            return False
+
+        # 防御检查，connect()成功但_serial_connection为None时直接返回
+        if self._serial_connection is None:
+            _LOGGER.error("Serial connection is None after connect() succeeded")
             return False
 
         try:
