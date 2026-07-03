@@ -1,6 +1,6 @@
 """remote platform for Egreat Player!"""
 
-from __future__ import annotations  # noqa: TID251
+from __future__ import annotations
 
 from collections.abc import Iterable
 import logging

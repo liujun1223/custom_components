@@ -101,9 +101,10 @@ CMD_9 = bytes([0x21, 0x01, 0x08, 0x02, 0x19, 0x09, 0x0D])
 
 # 亿格瑞播放器IP控制指令合集(TCP端口: 33080, 格式: CMD,keycode_xxx,END)
 IP_CMD_MAP = {
-    # 电源
+    # 电源,开关LED屏
     "power_on": "CMD,keycode_on,END",
     "power_off": "CMD,keycode_off,END",
+    "led_on_off": "CMD,keycode_led_off,END",
     # 导航
     "up": "CMD,keycode_dpad_up,END",
     "down": "CMD,keycode_dpad_down,END",
@@ -114,6 +115,7 @@ IP_CMD_MAP = {
     "home": "CMD,keycode_home,END",
     "menu": "CMD,keycode_menu,END",
     "back": "CMD,keycode_back,END",
+    "backspace": "CMD,keycode_dot,END",
     # 播放控制
     "play": "CMD,keycode_media_play,END",
     "pause": "CMD,keycode_media_pause,END",
@@ -121,5 +123,48 @@ IP_CMD_MAP = {
     # 快进快退
     "fwd": "CMD,keycode_scan_fwd,END",
     "rev": "CMD,keycode_scan_rev,END",
-    # 上一章下一章
+    # 上一章下一章/上一曲下一曲
+    "skip_rev": "CMD,keycode_skip_rev,END",
+    "skip_fwd": "CMD,keycode_skip_fwd,END",
+    "page_up": "CMD,keycode_page_up,END",
+    "page_down": "CMD,keycode_page_down,END",
+    # 音量
+    "volume_up": "CMD,keycode_volume_up,END",
+    "volume_down": "CMD,keycode_volume_down,END",
+    # 信息
+    "info": "CMD,keycode_info,END",
+    "audio": "CMD,keycode_audio,END",
+    "subbtitle": "CMD,keycode_subtitle,END",
+    # 蓝光菜单
+    "guide": "CMD,keycode_guide,END",
+    # 播放功能
+    "ratio": "CMD,keycode_ratio,END",
+    # 数字键
+    "number_0": "CMD,keycode_number_0,END",
+    "number_1": "CMD,keycode_number_1,END",
+    "number_2": "CMD,keycode_number_2,END",
+    "number_3": "CMD,keycode_number_3,END",
+    "number_4": "CMD,keycode_number_4,END",
+    "number_5": "CMD,keycode_number_5,END",
+    "number_6": "CMD,keycode_number_6,END",
+    "number_7": "CMD,keycode_number_7,END",
+    "number_8": "CMD,keycode_number_8,END",
+    "number_9": "CMD,keycode_number_9,END",
+    # 彩色按键
+    "red": "CMD,keycode_program_a,END",
+    "green": "CMD,keycode_program_b,END",
+    "yellow": "CMD,keycode_program_c,END",
+    "blue": "CMD,keycode_program_d,END",
+    # 长按按键
+    "hold_left": "CMD,keycode_dpad_start_left,END",
+    "release_left": "CMD,keycode_dpad_stop_left,END",
+    "hold_right": "CMD,keycode_dpad_start_right,END",
+    "release_right": "CMD,keycode_dpad_stop_right,END",
+    # 扩展命令
+    "samba_play": "PLAY,smb://UserName:Password@xx.xx.xx.xx/ShareFolder/movie.mkv,END",
+    "storage_play": "PLAY,/storage/xxx/movie.mp4,END",
+    "storage_play_1": "PLAY,/mnt/media_rw/xxx/Glue.mp4,END",
+    "get_software_info": "CMD,keycode_softwareinfo,END",
+    "get_app_list": "CMD,get_appinfo,END",
+    "launch_app": "LAUNCHERAPP,com.pplive.androidxl,END",
 }
