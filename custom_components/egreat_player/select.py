@@ -43,7 +43,10 @@ class EgreatCommandSelect(SelectEntity):
         self._attr_name = "Remote"
         self._attr_has_entity_name = True
         self._attr_unique_id = f"{entry_id}_command"
-        self._attr_options = [PLACEHOLDER] + list(COMMAND_MAP.keys())
+        if device._host:
+            self._attr_options = [PLACEHOLDER] + list(IP_CMD_MAP.keys())
+        else:
+            self._attr_options = [PLACEHOLDER] + list(COMMAND_MAP.keys())
         self._attr_current_option = PLACEHOLDER
 
     @property
@@ -93,7 +96,7 @@ class EgreatCommandSelect(SelectEntity):
                     self._device.send_ip_command, ip_cmd
                 )
                 if success:
-                    _LOGGER.debug("IP command executed: %s", option)
+                    _LOGGER.info("IP command executed: %s", option)
         # 降级到串口
         if not success:
             serial_cmd = COMMAND_MAP.get(option)
@@ -104,9 +107,9 @@ class EgreatCommandSelect(SelectEntity):
                 self._device.send_command, serial_cmd
             )
             if success:
-                _LOGGER.debug("Command executed: %s", option)
+                _LOGGER.info("Command executed: %s", option)
             else:
-                _LOGGER.debug("Command failed: %s", option)
+                _LOGGER.info("Command failed: %s", option)
         if success:
             self._attr_current_option = PLACEHOLDER
             self.async_write_ha_state()

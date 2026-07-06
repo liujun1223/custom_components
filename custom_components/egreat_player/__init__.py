@@ -131,7 +131,7 @@ class EgreatPlayer:
                 (self._host, IP_CONTROL_PORT), timeout=3
             ) as sock:
                 sock.sendall(command.encode("utf-8"))
-                _LOGGER.debug("IP command sent: %s", command)
+                _LOGGER.info("IP command sent: %s", command)
                 return True
         except OSError as e:
             _LOGGER.error("Failed to send IP command %s: %s", command, e)
@@ -163,8 +163,6 @@ class EgreatPlayer:
                 _LOGGER.error("Response data process")
             length = struct.unpack("!i", response[:4])[0]
             playroad = response[4:]
-            _LOGGER.warning("Length = %d", length)
-            _LOGGER.warning("Playroad = %r", playroad)
             data = json.loads(playroad.decode("utf-8"))
             if data.get("status") == "success":
                 _LOGGER.debug("Device info: %s", data)

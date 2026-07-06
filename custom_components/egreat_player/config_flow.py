@@ -153,14 +153,11 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def _test_tcp(self, host: str) -> bool:
         """测试TCP 26047端口是否可连接并返回设备信息!"""
-        _LOGGER.warning("Host: %s", host)
         try:
             with socket.create_connection((host, 26047), timeout=3) as sock:
-                _LOGGER.warning("已经连接上了！")
                 body = json.dumps({"cmd": "getDeviceInfo"}).encode("utf-8")
                 header = struct.pack("!i", len(body))
                 sock.sendall(header + body)
-                _LOGGER.warning("已经发送出去了！")
                 response = b""
                 while True:
                     chunk = sock.recv(1024)
@@ -169,15 +166,11 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     response += chunk
                     if b"}" in response:
                         break
-            _LOGGER.warning("Response bytes = %r", response)
             if len(response) < 4:
                 _LOGGER.error("Response data process")
             length = struct.unpack("!i", response[:4])[0]
             playroad = response[4:]
-            _LOGGER.warning("Length = %d", length)
-            _LOGGER.warning("Playroad = %r", playroad)
             data = json.loads(playroad.decode("utf-8"))
-            _LOGGER.warning(data.get("status") == "success")
             return data.get("status") == "success"
         except Exception:
             _LOGGER.exception("TCP test failed for %s", host)

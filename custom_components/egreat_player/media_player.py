@@ -119,14 +119,14 @@ class EgreatMediaPlayer(MediaPlayerEntity):
         ip_key: IP_CMD_MAP里的键名,None表示该命令没有对应的IP命令.
         """  # noqa: D205
         if ip_key and self._device._host:
-            ip_cmd = IP_CMD_MAP(ip_key)
+            ip_cmd = IP_CMD_MAP.get(ip_key)
             if ip_cmd:
                 success = await self.hass.async_add_executor_job(
                     self._device.send_ip_command, ip_cmd
                 )
                 if success:
                     return True
-                _LOGGER.debug("IP command failed, falling back to serial: %s", ip_key)
+                _LOGGER.info("IP command failed, falling back to serial: %s", ip_key)
         return await self.hass.async_add_executor_job(
             self._device.send_command, command
         )
