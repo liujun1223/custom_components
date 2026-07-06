@@ -26,6 +26,7 @@ from .const import (
     CMD_VOLUME_DOWN,
     CMD_VOLUME_UP,
     DOMAIN,
+    IP_CMD_MAP,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -113,66 +114,68 @@ class EgreatMediaPlayer(MediaPlayerEntity):
     def available(self) -> bool:
         return self._device.available
 
-    async def _send_command(self, command: bytes) -> bool:
-        """统一发送串口命令。
-        这里的作用：
-        1. 把阻塞 IO 放进 executor
-        2. 避免重复代码
-        3. 后续方便扩展：
-           - retry
-           - timeout
-           - command queue
-           - logging.
+    async def _send_command(self, command: bytes, ip_key: str | None = None) -> bool:
+        """发送控制命令,有IP时优先走IP控制,否则降级到串口
+        ip_key: IP_CMD_MAP里的键名,None表示该命令没有对应的IP命令.
         """  # noqa: D205
+        if ip_key and self._device._host:
+            ip_cmd = IP_CMD_MAP(ip_key)
+            if ip_cmd:
+                success = await self.hass.async_add_executor_job(
+                    self._device.send_ip_command, ip_cmd
+                )
+                if success:
+                    return True
+                _LOGGER.debug("IP command failed, falling back to serial: %s", ip_key)
         return await self.hass.async_add_executor_job(
             self._device.send_command, command
         )
 
     async def async_turn_on(self) -> None:
         """Turn on the player!"""
-        if await self._send_command(CMD_POWER_ON):
+        if await self._send_command(CMD_POWER_ON, "power_on"):
             self._attr_state = MediaPlayerState.ON
             self.async_write_ha_state()
 
     async def async_turn_off(self) -> None:
         """Turn off the player!"""
-        if await self._send_command(CMD_POWER_OFF):
+        if await self._send_command(CMD_POWER_OFF, "power_off"):
             self._attr_state = MediaPlayerState.OFF
             self.async_write_ha_state()
 
     async def async_media_play(self) -> None:
         """Send play command!"""
-        if await self._send_command(CMD_PLAY):
+        if await self._send_command(CMD_PLAY, "play"):
             self._attr_state = MediaPlayerState.PLAYING
             self.async_write_ha_state()
 
     async def async_media_pause(self) -> None:
         """Send pause command!"""
-        if await self._send_command(CMD_PAUSE):
+        if await self._send_command(CMD_PAUSE, "pause"):
             self._attr_state = MediaPlayerState.PAUSED
             self.async_write_ha_state()
 
     async def async_media_stop(self) -> None:
         """Send stop command!"""
-        if await self._send_command(CMD_STOP):
+        if await self._send_command(CMD_STOP, "stop"):
             self._attr_state = MediaPlayerState.IDLE
             self.async_write_ha_state()
 
     async def async_media_previous_track(self) -> None:
         """Send previous track command!"""
-        await self._send_command(CMD_PREVIOUS)
+        await self._send_command(CMD_PREVIOUS, "skip_rev")
 
     async def async_media_next_track(self) -> None:
         """Send next track command!"""
-        await self._send_command(CMD_NEXT)
+        await self._send_command(CMD_NEXT, "skip_fwd")
 
     async def async_volume_up(self) -> None:
         """Send volume up command!"""
-        await self._send_command(CMD_VOLUME_UP)
+        await self._send_command(CMD_VOLUME_UP, "volume_up")
 
     async def async_volume_down(self) -> None:
         """Send volume down command!"""
-        await self._send_command(CMD_VOLUME_DOWN)
+        await self._send_command(CMD_VOLUME_DOWN, "volume_down")
 
     async def async_mute_volume(self, mute: bool) -> None:
         """Send mute command!"""

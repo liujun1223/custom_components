@@ -99,7 +99,82 @@ CMD_7 = bytes([0x21, 0x01, 0x08, 0x02, 0x19, 0x07, 0x0D])
 CMD_8 = bytes([0x21, 0x01, 0x08, 0x02, 0x19, 0x08, 0x0D])
 CMD_9 = bytes([0x21, 0x01, 0x08, 0x02, 0x19, 0x09, 0x0D])
 
+# 协议命令映射
+COMMAND_MAP: dict[str, bytes] = {
+    # 导航
+    "up": CMD_UP,
+    "down": CMD_DOWN,
+    "left": CMD_LEFT,
+    "right": CMD_RIGHT,
+    "ok": CMD_OK,
+    # 系统
+    "home": CMD_HOME,
+    "menu": CMD_MENU,
+    "back": CMD_BACK,
+    "setup": CMD_SETUP,
+    # 播放控制
+    "play": CMD_PLAY,
+    "pause": CMD_PAUSE,
+    "stop": CMD_STOP,
+    "play_pause": CMD_PLAY_PAUSE,
+    # 快进快退
+    "ff": CMD_FF,
+    "fb": CMD_FB,
+    # 上一首下一首
+    "previous": CMD_PREVIOUS,
+    "prev": CMD_PREVIOUS,
+    "next": CMD_NEXT,
+    # 音量
+    "volume_up": CMD_VOLUME_UP,
+    "volume_down": CMD_VOLUME_DOWN,
+    "mute": CMD_MUTE,
+    # 字幕音轨
+    "subtitle": CMD_SUBTITLE,
+    "audio": CMD_AUDIO,
+    # 信息
+    "info": CMD_INFO,
+    # 蓝光菜单
+    "top_menu": CMD_TOP_MENU,
+    "pop_menu": CMD_POP_MENU,
+    # 文件分类
+    "file": CMD_FILE,
+    "video": CMD_VIDEO,
+    "music": CMD_MUSIC,
+    "photo": CMD_PHOTO,
+    # 播放功能
+    "repeat": CMD_REPEAT,
+    "goto": CMD_GOTO,
+    "bookmark": CMD_BOOKMARK,
+    "slow": CMD_SLOW,
+    "karaoke": CMD_KARAOKE,
+    # 显示
+    "ratio": CMD_RATIO,
+    "scale": CMD_SCALE,
+    "resolution": CMD_RESOLUTION,
+    # 彩色键
+    "red": CMD_RED,
+    "green": CMD_GREEN,
+    "yellow": CMD_YELLOW,
+    "blue": CMD_BLUE,
+    # 电源
+    "power_on": CMD_POWER_ON,
+    "power_off": CMD_POWER_OFF,
+    # 数字键
+    "0": CMD_0,
+    "1": CMD_1,
+    "2": CMD_2,
+    "3": CMD_3,
+    "4": CMD_4,
+    "5": CMD_5,
+    "6": CMD_6,
+    "7": CMD_7,
+    "8": CMD_8,
+    "9": CMD_9,
+}
+
 # 亿格瑞播放器IP控制指令合集(TCP端口: 33080, 格式: CMD,keycode_xxx,END)
+IP_CONTROL_PORT = 33080
+DEVICE_INFO_PORT = 26047
 IP_CMD_MAP = {
     # 电源,开关LED屏
     "power_on": "CMD,keycode_on,END",

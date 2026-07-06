@@ -13,13 +13,20 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_BAUDRATE, CONF_HOST, CONF_PORT, DOMAIN, RESPONSE_HEADER
+from .const import (
+    CONF_BAUDRATE,
+    CONF_HOST,
+    CONF_PORT,
+    DOMAIN,
+    IP_CONTROL_PORT,
+    RESPONSE_HEADER,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
 # For your initial PR, limit it to 1 platform.
 # 声明集成支持的平台：MEDIA_PLAYER
-_PLATFORMS: list[Platform] = [Platform.MEDIA_PLAYER, Platform.REMOTE, Platform.SELECT]
+_PLATFORMS: list[Platform] = [Platform.MEDIA_PLAYER, Platform.SELECT]
 
 # 配置入口类型别名
 type EgreatPlayerConfigEntry = ConfigEntry[EgreatPlayer]
@@ -113,6 +120,21 @@ class EgreatPlayer:
             self.available = False
             self._serial_connection = None
             _LOGGER.error("Error send command: %s", e)
+            return False
+
+    # 通过TCP 33080端口发送IP控制命令
+    def send_ip_command(self, command: str) -> bool:
+        if not self._host:
+            return False
+        try:
+            with socket.create_connection(
+                (self._host, IP_CONTROL_PORT), timeout=3
+            ) as sock:
+                sock.sendall(command.encode("utf-8"))
+                _LOGGER.debug("IP command sent: %s", command)
+                return True
+        except OSError as e:
+            _LOGGER.error("Failed to send IP command %s: %s", command, e)
             return False
 
     # 关闭串口连接
