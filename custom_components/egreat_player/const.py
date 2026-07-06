@@ -185,12 +185,12 @@ IP_CMD_MAP = {
     "down": "CMD,keycode_dpad_down,END",
     "left": "CMD,keycode_dpad_left,END",
     "right": "CMD,keycode_dpad_right,END",
-    "enter": "CMD,keycode_dpad_center,END",
+    "ok": "CMD,keycode_dpad_center,END",
     # 系统
     "home": "CMD,keycode_home,END",
     "menu": "CMD,keycode_menu,END",
     "back": "CMD,keycode_back,END",
-    "backspace": "CMD,keycode_dot,END",
+    "dot": "CMD,keycode_dot,END",
     # 播放控制
     "play": "CMD,keycode_media_play,END",
     "pause": "CMD,keycode_media_pause,END",

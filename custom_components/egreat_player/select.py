@@ -40,7 +40,7 @@ class EgreatCommandSelect(SelectEntity):
 
         self._device = device
         self._entry_id = entry_id
-        self._attr_name = "Command"
+        self._attr_name = "Remote"
         self._attr_has_entity_name = True
         self._attr_unique_id = f"{entry_id}_command"
         self._attr_options = [PLACEHOLDER] + list(COMMAND_MAP.keys())
@@ -120,5 +120,6 @@ class EgreatCommandSelect(SelectEntity):
     @property
     def extra_state_attributes(self) -> dict[str, int]:
         """用于显示支持的命令数量!"""
-
+        if self._device._host:
+            return {"supported_commands": len(IP_CMD_MAP)}
         return {"supported_commands": len(COMMAND_MAP)}
