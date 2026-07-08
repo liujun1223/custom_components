@@ -154,7 +154,7 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     def _build_title(self, data: dict) -> str:
-        model = data.get("model", "EGREAT")
+        model = data.get("model", "EGREAT").split("_")[1]
         return f"{model}"
 
     def _test_tcp(self, host: str) -> dict | None:
