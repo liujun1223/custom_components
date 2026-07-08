@@ -43,10 +43,8 @@ class EgreatCommandSelect(SelectEntity):
         self._attr_name = "Remote"
         self._attr_has_entity_name = True
         self._attr_unique_id = f"{entry_id}_command"
-        if device._host:
-            self._attr_options = [PLACEHOLDER] + list(IP_CMD_MAP.keys())
-        else:
-            self._attr_options = [PLACEHOLDER] + list(COMMAND_MAP.keys())
+        command_map = IP_CMD_MAP if device._host else COMMAND_MAP
+        self._attr_options = [PLACEHOLDER, *command_map.keys()]
         self._attr_current_option = PLACEHOLDER
 
     @property

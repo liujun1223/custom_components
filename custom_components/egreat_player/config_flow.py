@@ -116,14 +116,16 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             host = user_input.get(CONF_HOST, "").strip()
             # 如果填写了IP，验证能否连接到26047端口
             if host:
-                valid = await self.hass.async_add_executor_job(self._test_tcp, host)
-                if not valid:
+                device_info = await self.hass.async_add_executor_job(
+                    self._test_tcp, host
+                )
+                if not device_info:
                     errors["base"] = "cannot_connect_tcp"
                 else:
                     await self.async_set_unique_id(self._detected_port)
                     self._abort_if_unique_id_configured()
                     return self.async_create_entry(
-                        title="k5",
+                        title=self._build_title(device_info),
                         data={
                             CONF_PORT: self._detected_port,
                             CONF_BAUDRATE: DEFAULT_BAUDRATE,
@@ -151,7 +153,11 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    def _test_tcp(self, host: str) -> bool:
+    def _build_title(self, data: dict) -> str:
+        model = data.get("model", "EGREAT")
+        return f"{model}"
+
+    def _test_tcp(self, host: str) -> dict | None:
         """测试TCP 26047端口是否可连接并返回设备信息!"""
         try:
             with socket.create_connection((host, 26047), timeout=3) as sock:
@@ -171,7 +177,9 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             length = struct.unpack("!i", response[:4])[0]
             playroad = response[4:]
             data = json.loads(playroad.decode("utf-8"))
-            return data.get("status") == "success"
+            if data.get("status") == "success":
+                return data
+            return None
         except Exception:
             _LOGGER.exception("TCP test failed for %s", host)
             return False
@@ -193,16 +201,24 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # 用户提交
         if user_input is not None:
             port = user_input[CONF_PORT]
+            host = user_input.get(CONF_HOST, "").strip()
             # 验证设备
             valid = await self._test_port(port)
 
             if not valid:
                 errors["base"] = "no_device_found"
             else:
+                title = "K5"
+                if host:
+                    device_info = await self.hass.async_add_executor_job(
+                        self._test_tcp, host
+                    )
+                    if device_info:
+                        title = self._build_title(device_info)
                 # 防止重复添加
                 await self.async_set_unique_id(port)
                 self._abort_if_unique_id_configured()
-                return self.async_create_entry(title="K5", data=user_input)
+                return self.async_create_entry(title=title, data=user_input)
 
         # user_input为None时用空默认值，有值时进行回填
         previous = user_input or {}
