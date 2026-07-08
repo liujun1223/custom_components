@@ -102,9 +102,9 @@ class EgreatMediaPlayer(MediaPlayerEntity):
             connections={(CONNECTION_NETWORK_MAC, self._device.mac_address)}
             if self._device.mac_address
             else set(),
-            name=self._device.model,
+            name=self._device.model.split("_")[1],
             manufacturer="Egreat",
-            model=self._device.model,
+            model=self._device.model.split("_")[1],
             sw_version=self._device.sw_version,
             configuration_url="http://www.egreatworld.com/",
         )
