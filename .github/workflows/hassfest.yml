@@ -7,17 +7,10 @@ on:
 
 jobs:
   hassfest:
-    name: Run hassfest validation
+    name: Hassfest validation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install hassfest
-        run: pip install hassfest
-
       - name: Run hassfest
-        run: hassfest custom_components/
+        uses: home-assistant/actions/hassfest@master
