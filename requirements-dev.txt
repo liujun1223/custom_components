@@ -1,0 +1,9 @@
+# 与 custom_components/egreat_player/manifest.json 的 requirements 保持一致
+pyserial>=3.5
+
+# HA 接口补全/类型提示（Windows 上可正常导入，仅测试插件不支持）
+homeassistant==2026.10.4
+
+# 代码检查（与 HA 官方工具链一致）
+ruff==0.17.3
+mypy==2.4.1
