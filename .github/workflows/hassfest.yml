@@ -1,0 +1,23 @@
+name: Hassfest
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  hassfest:
+    name: Run hassfest validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install hassfest
+        run: pip install hassfest
+
+      - name: Run hassfest
+        run: hassfest path=custom_components
