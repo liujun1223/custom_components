@@ -82,43 +82,46 @@ class EgreatMediaPlayer(MediaPlayerEntity):
         # 默认静音状态
         self._attr_is_volume_muted = False
 
-    # 定时检查设备是否在线，并将状态变化通知HA更新前端显示
     async def async_added_to_hass(self) -> None:
+        """实体加入 HA 后启动定时检查设备可用性。."""
         async_track_time_interval(
             self.hass, self._async_check_availability, timedelta(seconds=10)
         )
 
     async def _async_check_availability(self, _now=None) -> None:
+        """探活串口连接；上线/下线时通知 HA 刷新状态。."""
         was_available = self._device.available
         is_available = await self.hass.async_add_executor_job(self._device.connect)
         if was_available != is_available:
             self.async_write_ha_state()
 
-    # 设备信息
     @property
-    def device_info(self):
+    def device_info(self) -> DeviceInfo:
+        """返回设备信息，用于在 HA 设备注册表中登记。."""
+        # model/可能为 None（TCP 查询失败时），做兜底
+        model = self._device.model or "Egreat Player"
         return DeviceInfo(
             identifiers={(DOMAIN, self._entry_id)},
             connections={(CONNECTION_NETWORK_MAC, self._device.mac_address)}
             if self._device.mac_address
             else set(),
-            name=self._device.model.split("_")[1],
+            name=model.split("_")[-1] if "_" in model else model,
             manufacturer="Egreat",
-            model=self._device.model.split("_")[1],
+            model=model.split("_")[-1] if "_" in model else model,
             sw_version=self._device.sw_version,
             configuration_url="http://www.egreatworld.com/",
         )
 
-    # 返回设备是否在线
     @property
     def available(self) -> bool:
+        """返回设备是否在线。."""
         return self._device.available
 
-    async def _send_command(self, command: bytes, ip_key: str | None = None) -> bool:
-        """发送控制命令,有IP时优先走IP控制,否则降级到串口
-        ip_key: IP_CMD_MAP里的键名,None表示该命令没有对应的IP命令.
-        """  # noqa: D205
-        if ip_key and self._device._host:
+    async def _send_command(
+        self, command: bytes, ip_key: str | None = None
+    ) -> bool:
+        """发送控制命令；有 IP 时优先走 IP 控制，否则降级到串口。."""
+        if ip_key and self._device.host:
             ip_cmd = IP_CMD_MAP.get(ip_key)
             if ip_cmd:
                 success = await self.hass.async_add_executor_job(

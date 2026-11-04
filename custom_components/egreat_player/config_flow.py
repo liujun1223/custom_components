@@ -7,9 +7,9 @@ import struct
 import time
 from typing import Any
 
+import probatio as vol
 import serial
 import serial.tools.list_ports
-import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult
@@ -64,8 +64,7 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_auto_detect(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        # 自动识别串口
-        # 串口为/dev/ttys*
+        """自动识别串口并尝试发送状态查询指令验证亿格瑞播放器。."""
 
         # 获取所有串口
         ports = await self.hass.async_add_executor_job(serial.tools.list_ports.comports)
@@ -154,11 +153,12 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     def _build_title(self, data: dict) -> str:
-        model = data.get("model", "EGREAT").split("_")[1]
-        return f"{model}"
+        """根据设备信息构造在 HA 中显示的 title。."""
+        model = data.get("model") or "Egreat"
+        return model.split("_")[-1] if "_" in model else model
 
     def _test_tcp(self, host: str) -> dict | None:
-        """测试TCP 26047端口是否可连接并返回设备信息!"""
+        """测试 TCP 26047 端口是否可连接并返回设备信息。."""
         try:
             with socket.create_connection((host, 26047), timeout=3) as sock:
                 body = json.dumps({"cmd": "getDeviceInfo"}).encode("utf-8")
@@ -173,21 +173,24 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     if b"}" in response:
                         break
             if len(response) < 4:
-                _LOGGER.error("Response data process")
-            length = struct.unpack("!i", response[:4])[0]
+                _LOGGER.error("TCP response too short from %s", host)
+                return None
             playroad = response[4:]
             data = json.loads(playroad.decode("utf-8"))
             if data.get("status") == "success":
                 return data
+            return None  # noqa: TRY300  与 RET505 冲突，优先 RET505 风格
+        except OSError:
+            _LOGGER.exception("TCP connect failed for %s", host)
             return None
-        except Exception:
-            _LOGGER.exception("TCP test failed for %s", host)
-            return False
+        except (json.JSONDecodeError, struct.error):
+            _LOGGER.exception("Malformed TCP response from %s", host)
+            return None
 
     async def async_step_manual(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        # 手动选择
+        """让用户手动选择串口、波特率和可选 IP。."""
         errors = {}
 
         # 获取串口列表

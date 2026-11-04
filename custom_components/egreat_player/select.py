@@ -36,58 +36,48 @@ class EgreatCommandSelect(SelectEntity):
     _attr_should_poll = False
 
     def __init__(self, entry_id: str, device: EgreatPlayer) -> None:
-        """初始化实体!"""
+        """初始化实体。."""
 
         self._device = device
         self._entry_id = entry_id
         self._attr_name = "Remote"
         self._attr_has_entity_name = True
         self._attr_unique_id = f"{entry_id}_command"
-        command_map = IP_CMD_MAP if device._host else COMMAND_MAP
+        command_map = IP_CMD_MAP if device.host else COMMAND_MAP
         self._attr_options = [PLACEHOLDER, *command_map.keys()]
         self._attr_current_option = PLACEHOLDER
 
     @property
     def available(self) -> bool:
-        """设备是否在线!"""
-
+        """设备是否在线。."""
         return self._device.available
 
-    # 设备信息
     @property
-    def device_info(self):
+    def device_info(self) -> DeviceInfo:
+        """返回设备信息，用于在 HA 设备注册表中登记。."""
+        model = self._device.model or "Egreat Player"
         return DeviceInfo(
             identifiers={(DOMAIN, self._entry_id)},
             connections={(CONNECTION_NETWORK_MAC, self._device.mac_address)}
             if self._device.mac_address
             else set(),
-            name=self._device.model.split("_")[1],
+            name=model.split("_")[-1] if "_" in model else model,
             manufacturer="Egreat",
-            model=self._device.model.split("_")[1],
+            model=model.split("_")[-1] if "_" in model else model,
             sw_version=self._device.sw_version,
             configuration_url="http://www.egreatworld.com/",
         )
 
     async def async_select_option(self, option: str) -> None:
-        """用户选择某个命令后执行.
-
-        例如：
-        home
-        menu
-        back
-        play
-        pause
-        选择后立即发送串口命令.
-        """
-
+        """用户选中某个命令后立即下发。."""
         if option == PLACEHOLDER:
             return
 
         _LOGGER.debug("Send command: %s", option)
         success = False
 
-        # 优先走IP控制
-        if self._device._host:
+        # 优先走 IP 控制
+        if self._device.host:
             ip_cmd = IP_CMD_MAP.get(option)
             if ip_cmd:
                 success = await self.hass.async_add_executor_job(
@@ -114,13 +104,12 @@ class EgreatCommandSelect(SelectEntity):
 
     @property
     def icon(self) -> str:
-        """实体图标!"""
-
+        """实体图标。."""
         return "mdi:remote"
 
     @property
     def extra_state_attributes(self) -> dict[str, int]:
-        """用于显示支持的命令数量!"""
-        if self._device._host:
+        """返回当前支持的命令数量。."""
+        if self._device.host:
             return {"supported_commands": len(IP_CMD_MAP)}
         return {"supported_commands": len(COMMAND_MAP)}

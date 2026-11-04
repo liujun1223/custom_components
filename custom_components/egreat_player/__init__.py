@@ -24,8 +24,7 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# For your initial PR, limit it to 1 platform.
-# 声明集成支持的平台：MEDIA_PLAYER
+# 声明集成支持的平台：MEDIA_PLAYER + SELECT
 _PLATFORMS: list[Platform] = [Platform.MEDIA_PLAYER, Platform.SELECT]
 
 # 配置入口类型别名
@@ -33,120 +32,111 @@ type EgreatPlayerConfigEntry = ConfigEntry[EgreatPlayer]
 
 
 class EgreatPlayer:
-    """Egreat Player Api!"""
-    # 初始化串口连接参数
-    def __init__(self, port: str, baudrate: int, host: str | None = None) -> None:
+    """Egreat Player API，封装串口与 TCP 两种控制通路。."""
+
+    def __init__(
+        self, port: str, baudrate: int, host: str | None = None
+    ) -> None:
+        """初始化播放器实例；host 可选，仅用于 IP 控制与设备信息查询。."""
         self._port = port
         self._baudrate = baudrate
         self._host = host
-        # 初始化MAC地址
         self.mac_address: str | None = None
-        # 设备型号
         self.model: str | None = None
-        # 软件版本
         self.sw_version: str | None = None
-        # 串口连接对象
-        self._serial_connection = None
-        # 设备在线状态
+        self._serial_connection: serial.Serial | None = None
         self.available = False
 
-    # 连接串口设备
     def connect(self) -> bool:
-        # 已连接时探活
-        if self._serial_connection and self._serial_connection.is_open:
+        """建立或探活串口连接。."""
+        if self._serial_connection is not None and self._serial_connection.is_open:
             try:
-                self._serial_connection.in_waiting
-                return True  # 串口健康，直接返回
-            except Exception as err:
+                # 访问 in_waiting 触发实际的端口探活；若串口已死会抛异常
+                _ = self._serial_connection.in_waiting
+            except (serial.SerialException, OSError) as err:
                 _LOGGER.debug("Serial connection dead: %s", err)
-                # 串口已死，强制关闭
                 try:
                     self._serial_connection.close()
-                except Exception as close_err:
+                except OSError as close_err:
                     _LOGGER.debug("Failed to close dead connection: %s", close_err)
                 self._serial_connection = None
                 self.available = False
+            else:
+                return True
 
-        # 重新建立连接
         try:
             self._serial_connection = serial.Serial(
                 self._port, self._baudrate, timeout=1
             )
-            self.available = True
-            _LOGGER.info("Connected to egreat player on %s", self._port)
-            return True
         except serial.SerialException as e:
-            self._serial_connection = None  # 确保失败时置None
+            self._serial_connection = None
             self.available = False
             _LOGGER.error("Failed to connect to %s: %s", self._port, e)
             return False
+        else:
+            self.available = True
+            _LOGGER.info("Connected to egreat player on %s", self._port)
+            return True
 
-    # 发送串口控制命令
     def send_command(self, command: bytes) -> bool:
-        # 自动重连
-        if not self.connect():
-            return False
-
-        # 防御检查，connect()成功但_serial_connection为None时直接返回
-        if self._serial_connection is None:
-            _LOGGER.error("Serial connection is None after connect() succeeded")
+        """通过串口发送控制命令并校验响应帧头。."""
+        if not self.connect() or self._serial_connection is None:
             return False
 
         try:
-            # 清空历史缓存
             self._serial_connection.reset_input_buffer()
-
-            # 发送命令
             self._serial_connection.write(command)
             self._serial_connection.flush()
             _LOGGER.debug("Send command: %s", command.hex())
 
-            # 读取设备反馈码，直到D0,设置size上限20
-            response = self._serial_connection.read_until(b"\xD0", size = 20)
+            response = self._serial_connection.read_until(b"\xD0", size=20)
             _LOGGER.debug("Response: %s", response.hex())
 
-            # 没收到反馈
             if not response:
                 _LOGGER.debug("No response received")
                 return False
-
-            # 验证协议头
             if response[0] != RESPONSE_HEADER:
                 _LOGGER.debug("Invalid response header: %s", response.hex())
                 return False
-
-            return True
-        except Exception as e:
+        except (serial.SerialException, OSError) as e:
             self.available = False
             self._serial_connection = None
             _LOGGER.error("Error send command: %s", e)
             return False
+        else:
+            return True
 
-    # 通过TCP 33080端口发送IP控制命令
     def send_ip_command(self, command: str) -> bool:
-        if not self._host:
+        """通过 TCP 33080 发送 IP 控制命令."""
+        if self._host is None:
             return False
         try:
             with socket.create_connection(
                 (self._host, IP_CONTROL_PORT), timeout=3
             ) as sock:
                 sock.sendall(command.encode("utf-8"))
-                _LOGGER.info("IP command sent: %s", command)
-                return True
+            _LOGGER.info("IP command sent: %s", command)
         except OSError as e:
             _LOGGER.error("Failed to send IP command %s: %s", command, e)
             return False
+        else:
+            return True
 
-    # 关闭串口连接
+    @property
+    def host(self) -> str | None:
+        """返回当前的 IP 地址配置。."""
+        return self._host
+
     def close(self) -> None:
-        if self._serial_connection and self._serial_connection.is_open:
+        """关闭串口连接并释放资源。."""
+        if self._serial_connection is not None and self._serial_connection.is_open:
             self._serial_connection.close()
             _LOGGER.info("Closed connection to %s", self._port)
 
-    # 通过TCP 26047端口查询设备信息(型号，版本，MAC等)
     def get_device_info(self, ip: str) -> dict | None:
+        """通过 TCP 26047 端口查询设备信息（型号、版本、MAC 等）。."""
         try:
-            with socket.create_connection((ip, 26047), timeout = 3) as sock:
+            with socket.create_connection((ip, 26047), timeout=3) as sock:
                 body = json.dumps({"cmd": "getDeviceInfo"}).encode("utf-8")
                 header = struct.pack("!i", len(body))
                 sock.sendall(header + body)
@@ -156,41 +146,59 @@ class EgreatPlayer:
                     if not chunk:
                         break
                     response += chunk
-                    # 收到完整的json后退出
                     if b"}" in response:
                         break
-            if len(response) < 4:
-                _LOGGER.error("Response data process")
-            length = struct.unpack("!i", response[:4])[0]
-            playroad = response[4:]
-            data = json.loads(playroad.decode("utf-8"))
-            if data.get("status") == "success":
-                _LOGGER.debug("Device info: %s", data)
-                return data
-        except Exception:
-            _LOGGER.exception("Failed to get device info from %s", ip)
+        except OSError:
+            _LOGGER.exception("Failed to connect to %s for device info", ip)
+            return None
+        except (json.JSONDecodeError, struct.error):
+            _LOGGER.exception("Malformed response from %s", ip)
             return None
 
-    # 通过arp获取MAC地址(备用，当TCP查询没有返回MAC时使用)
+        if len(response) < 4:
+            _LOGGER.error("Response data too short, no device info")
+            return None
+        struct.unpack("!i", response[:4])
+        playroad = response[4:]
+        data = json.loads(playroad.decode("utf-8"))
+        if data.get("status") == "success":
+            _LOGGER.debug("Device info: %s", data)
+            return data
+        return None
+
     def get_mac_from_ip(self, ip: str) -> str | None:
+        """通过 ARP 获取 MAC 地址（当 TCP 查询没有返回 MAC 时的备用方案）。."""
         try:
-            subprocess.run(["ping", "-c", "1", ip], capture_output=True, timeout=1)
+            subprocess.run(
+                ["ping", "-c", "1", ip],
+                check=False,
+                capture_output=True,
+                timeout=1,
+            )
             result = subprocess.run(
-                ["arp", "-n", ip], capture_output=True, text=True, timeout=1
+                ["arp", "-n", ip],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=1,
             )
             match = re.search(
                 r"([0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}",
-                result.stdout
+                result.stdout,
             )
             if match:
                 return match.group(0)
-        except Exception:
+        except (OSError, subprocess.TimeoutExpired):
             _LOGGER.exception("Failed to get MAC for IP %s", ip)
 
         return None
 
 
-# 配置入口设置函数的功能
+# ---------------------------------------------------------------------------
+# 配置入口生命周期
+# ---------------------------------------------------------------------------
+
+
 async def async_setup_entry(
     hass: HomeAssistant, entry: EgreatPlayerConfigEntry
 ) -> bool:
@@ -198,48 +206,47 @@ async def async_setup_entry(
 
     hass.data.setdefault(DOMAIN, {})
 
-    # 创建播放器实例
-    player = EgreatPlayer(entry.data[CONF_PORT], entry.data[CONF_BAUDRATE], host = entry.data.get(CONF_HOST))
-    # 通过TCP查询设备信息(MAC，型号，版本)
-    if player._host:
+    player = EgreatPlayer(
+        entry.data[CONF_PORT],
+        entry.data[CONF_BAUDRATE],
+        host=entry.data.get(CONF_HOST),
+    )
+
+    # 通过 TCP 查询设备信息（MAC、型号、版本），失败降级用 ARP
+    if player.host:
         device_info = await hass.async_add_executor_job(
-            player.get_device_info,
-            player._host,
+            player.get_device_info, player.host
         )
         if device_info:
             player.mac_address = device_info.get("mac")
             player.model = device_info.get("model")
             player.sw_version = device_info.get("version")
-            _LOGGER.info("Device info: model = %s, version = %s, mac = %s", player.model, player.sw_version, player.mac_address)
+            _LOGGER.info(
+                "Device info: model=%s, version=%s, mac=%s",
+                player.model,
+                player.sw_version,
+                player.mac_address,
+            )
         else:
-            # TCP查询失败，降级用ARP获取MAC
-            _LOGGER.debug("TCP query failed, faling back to ARP")
+            _LOGGER.debug("TCP query failed, falling back to ARP")
             player.mac_address = await hass.async_add_executor_job(
-                player.get_mac_from_ip,
-                player._host,
+                player.get_mac_from_ip, player.host
             )
 
-    # 测试连接
+    # 测试串口连接
     connected = await hass.async_add_executor_job(player.connect)
     if not connected:
         return False
 
-    # 存储API对象供平台使用
     entry.runtime_data = player
-
-    # 转发到各平台
     await hass.config_entries.async_forward_entry_setups(entry, _PLATFORMS)
-
     return True
 
-# 配置卸载函数的功能
-async def async_unload_entry(hass: HomeAssistant, entry: EgreatPlayerConfigEntry) -> bool:
+
+async def async_unload_entry(
+    hass: HomeAssistant, entry: EgreatPlayerConfigEntry
+) -> bool:
     """Unload a config entry."""
-    # 关闭串口连接
     player = entry.runtime_data
     await hass.async_add_executor_job(player.close)
-
-    #卸载平台
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, _PLATFORMS)
-
-    return unload_ok
+    return await hass.config_entries.async_unload_platforms(entry, _PLATFORMS)

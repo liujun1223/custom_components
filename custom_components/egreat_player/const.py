@@ -209,7 +209,7 @@ IP_CMD_MAP = {
     # 信息
     "info": "CMD,keycode_info,END",
     "audio": "CMD,keycode_audio,END",
-    "subbtitle": "CMD,keycode_subtitle,END",
+    "subtitle": "CMD,keycode_subtitle,END",
     # 蓝光菜单
     "guide": "CMD,keycode_guide,END",
     # 播放功能
