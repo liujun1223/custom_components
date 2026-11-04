@@ -14,10 +14,10 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.12"
 
       - name: Install hassfest
         run: pip install hassfest
 
       - name: Run hassfest
-        run: hassfest custom_components
+        run: hassfest custom_components/
