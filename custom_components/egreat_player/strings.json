@@ -1,6 +1,13 @@
 {
   "config": {
     "step": {
+      "discovery_port": {
+        "title": "选择串口",
+        "description": "已发现亿格瑞播放器 **{name}**。请选择连接播放器的串口。",
+        "data": {
+          "port": "串口"
+        }
+      },
       "user": {
         "title": "选择配置方式",
         "data": {
@@ -30,7 +37,9 @@
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "abort": {
-      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]",
+      "not_egreat_device": "发现的设备不是亿格瑞播放器，已忽略",
+      "no_serial_port": "未检测到可用串口，无法接入播放器"
     }
   }
 }

@@ -1,7 +1,9 @@
 {
     "config": {
         "abort": {
-            "already_configured": "Device is already configured"
+            "already_configured": "Device is already configured",
+            "no_serial_port": "\u672a\u68c0\u6d4b\u5230\u53ef\u7528\u4e32\u53e3\uff0c\u65e0\u6cd5\u63a5\u5165\u64ad\u653e\u5668",
+            "not_egreat_device": "\u53d1\u73b0\u7684\u8bbe\u5907\u4e0d\u662f\u4ebf\u683c\u745e\u64ad\u653e\u5668\uff0c\u5df2\u5ffd\u7565"
         },
         "error": {
             "cannot_connect": "Failed to connect",
@@ -10,6 +12,13 @@
             "unknown": "Unexpected error"
         },
         "step": {
+            "discovery_port": {
+                "data": {
+                    "port": "\u4e32\u53e3"
+                },
+                "description": "\u5df2\u53d1\u73b0\u4ebf\u683c\u745e\u64ad\u653e\u5668 **{name}**\u3002\u8bf7\u9009\u62e9\u8fde\u63a5\u64ad\u653e\u5668\u7684\u4e32\u53e3\u3002",
+                "title": "\u9009\u62e9\u4e32\u53e3"
+            },
             "host": {
                 "data": {
                     "host": "IP\u5730\u5740"

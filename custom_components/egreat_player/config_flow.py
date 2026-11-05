@@ -5,7 +5,8 @@ import logging
 import socket
 import struct
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
+from urllib.parse import urlparse
 
 import probatio as vol
 import serial
@@ -25,6 +26,10 @@ from .const import (
     SUPPORTED_USB_VIDS,
 )
 
+if TYPE_CHECKING:
+    # HA 2026.10 起 SsdpServiceInfo 为私有名，仅在类型检查时导入
+    from homeassistant.components.ssdp import _SsdpServiceInfo
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -37,7 +42,9 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self) -> None:
         """初始化配置流程!"""
-        self._detected_port = None
+        self._detected_port: str | None = None
+        self._ssdp_host: str | None = None
+        self._discovery_info: dict | None = None
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -59,6 +66,68 @@ class EgreatPlayerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required("auto_detect", default=True): bool,
                 }
             ),
+        )
+
+    async def async_step_ssdp(
+        self, discovery_info: _SsdpServiceInfo
+    ) -> ConfigFlowResult:
+        """处理 SSDP 发现的 DLNA MediaRenderer，验证是否为亿格瑞播放器。."""
+        location = discovery_info.ssdp_location or ""
+        host = urlparse(location).hostname
+        if not host:
+            return self.async_abort(reason="not_egreat_device")
+
+        # 局域网内所有 DLNA 渲染器都会触发本步骤（Apple TV、Sonos 等），
+        # 用 TCP 26047 的 getDeviceInfo 验证这确实是亿格瑞播放器
+        device_info = await self.hass.async_add_executor_job(self._test_tcp, host)
+        if not device_info:
+            return self.async_abort(reason="not_egreat_device")
+
+        self._ssdp_host = host
+        self._discovery_info = device_info
+
+        # 唯一 ID 优先用设备 MAC，其次 SSDP UDN，最后退回 IP
+        udn = (discovery_info.upnp.get("UDN") or "").removeprefix("uuid:")
+        unique_id = device_info.get("mac") or udn or host
+        await self.async_set_unique_id(unique_id)
+        self._abort_if_unique_id_configured()
+        self.context["title_placeholders"] = {"name": self._build_title(device_info)}
+        return await self.async_step_discovery_port()
+
+    async def async_step_discovery_port(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """SSDP 发现后让用户选择连接播放器的串口。."""
+        errors: dict[str, str] = {}
+        assert self._discovery_info is not None
+
+        if user_input is not None:
+            port = user_input[CONF_PORT]
+            if await self._test_port(port):
+                return self.async_create_entry(
+                    title=self._build_title(self._discovery_info),
+                    data={
+                        CONF_PORT: port,
+                        CONF_BAUDRATE: DEFAULT_BAUDRATE,
+                        CONF_HOST: self._ssdp_host,
+                    },
+                )
+            errors["base"] = "no_device_found"
+
+        ports = await self.hass.async_add_executor_job(
+            serial.tools.list_ports.comports
+        )
+        candidates = [
+            port.device for port in ports if self._is_likely_serial_device(port)
+        ]
+        if not candidates:
+            return self.async_abort(reason="no_serial_port")
+
+        return self.async_show_form(
+            step_id="discovery_port",
+            data_schema=vol.Schema({vol.Required(CONF_PORT): vol.In(candidates)}),
+            errors=errors,
+            description_placeholders={"name": self._build_title(self._discovery_info)},
         )
 
     async def async_step_auto_detect(

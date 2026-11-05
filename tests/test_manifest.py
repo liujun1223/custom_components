@@ -1,4 +1,4 @@
-"""冒烟测试：确认开发环境可用、集成结构符合 HA 要求。"""
+"""冒烟测试：确认开发环境可用、集成结构符合 HA 要求."""
 import json
 from pathlib import Path
 
@@ -11,7 +11,7 @@ MANIFEST_PATH = (
 
 
 def test_manifest_matches_folder() -> None:
-    """manifest 的 domain 必须与目录名一致，且带有版本号。"""
+    """Manifest 的 domain 必须与目录名一致，且带有版本号."""
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
 
     assert manifest["domain"] == MANIFEST_PATH.parent.name
@@ -19,8 +19,12 @@ def test_manifest_matches_folder() -> None:
     assert manifest["config_flow"] is True
 
 
-def test_manifest_declares_pyserial() -> None:
-    """串口依赖必须在 manifest 中声明，HA 才能自动安装。"""
+def test_manifest_declares_ssdp_discovery() -> None:
+    """SSDP 发现必须声明 DLNA MediaRenderer，集成才会出现在“已发现”列表."""
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
 
-    assert any("pyserial" in req for req in manifest["requirements"])
+    assert any(
+        "MediaRenderer" in matcher.get("st", "") for matcher in manifest["ssdp"]
+    )
+    # hassfest 要求：导入 ssdp 组件模块需声明 after_dependencies
+    assert "ssdp" in manifest["after_dependencies"]
