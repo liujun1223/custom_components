@@ -84,8 +84,10 @@ class EgreatMediaPlayer(MediaPlayerEntity):
 
     async def async_added_to_hass(self) -> None:
         """实体加入 HA 后启动定时检查设备可用性。."""
-        async_track_time_interval(
-            self.hass, self._async_check_availability, timedelta(seconds=10)
+        self.async_on_remove(
+            async_track_time_interval(
+                self.hass, self._async_check_availability, timedelta(seconds=10)
+            )
         )
 
     async def _async_check_availability(self, _now=None) -> None:

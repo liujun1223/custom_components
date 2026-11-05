@@ -236,9 +236,6 @@ IP_CMD_MAP = {
     "hold_right": "CMD,keycode_dpad_start_right,END",
     "release_right": "CMD,keycode_dpad_stop_right,END",
     # 扩展命令
-    "samba_play": "PLAY,smb://UserName:Password@xx.xx.xx.xx/ShareFolder/movie.mkv,END",
-    "storage_play": "PLAY,/storage/xxx/movie.mp4,END",
-    "storage_play_1": "PLAY,/mnt/media_rw/xxx/Glue.mp4,END",
     "get_software_info": "CMD,keycode_softwareinfo,END",
     "get_app_list": "CMD,get_appinfo,END",
     "launch_app": "LAUNCHERAPP,com.pplive.androidxl,END",

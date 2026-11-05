@@ -12,6 +12,7 @@ import serial
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
 
 from .const import (
     CONF_BAUDRATE,
@@ -233,10 +234,13 @@ async def async_setup_entry(
                 player.get_mac_from_ip, player.host
             )
 
-    # 测试串口连接
+    # 测试串口连接；失败时抛 ConfigEntryNotReady，让 HA 自动重试
+    # （USB 转串口适配器可能在开机后才出现，直接 return False 会让集成永久失效）
     connected = await hass.async_add_executor_job(player.connect)
     if not connected:
-        return False
+        raise ConfigEntryNotReady(
+            f"无法打开串口 {entry.data[CONF_PORT]}，请检查 USB 连接"
+        )
 
     entry.runtime_data = player
     await hass.config_entries.async_forward_entry_setups(entry, _PLATFORMS)
