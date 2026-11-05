@@ -1,14 +1,14 @@
 {
   "domain": "egreat_player",
   "name": "Egreat Player",
+  "after_dependencies": [
+    "ssdp"
+  ],
   "codeowners": [
     "@liujun1223"
   ],
   "config_flow": true,
   "dependencies": [],
-  "after_dependencies": [
-    "ssdp"
-  ],
   "documentation": "https://github.com/liujun1223/custom_components/blob/main/README.md",
   "integration_type": "device",
   "iot_class": "local_polling",
