@@ -11,11 +11,18 @@
 
 ## 安装
 
-### 通过 HACS 安装
+### 通过 HACS 安装（推荐）
 
-1. 添加自定义仓库：`https://github.com/liujun1223/custom_components.git`
-2. 搜索并安装 "Egreat Player"
-3. 重启 HA
+1. 打开 HACS → Integrations，搜索 "Egreat Player"
+2. 点击下载并重启 HA
+
+### 通过自定义仓库安装
+
+如果 HACS 搜索不到（例如使用的 HACS 版本较旧或缓存未更新）：
+
+1. HACS → Integrations → 右上角 ⋮ → Custom repositories
+2. 填入 `https://github.com/liujun1223/custom_components`，类别选 Integration
+3. 搜索并安装 "Egreat Player"，重启 HA
 
 ### 手动安装
 
